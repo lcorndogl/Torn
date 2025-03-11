@@ -14,37 +14,40 @@ from pathlib import Path
 import os
 import sys
 import dj_database_url
-if os.path.isfile('env.py'):
-    import env
+import environ
+
+env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
 
+# Ensure the .env file is read correctly
+env.read_env(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = 'DEBUG' in os.environ
+DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
-
 
 # Application definition
 
 INSTALLED_APPS = [
+    'rackets',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rackets',
 ]
+
+print("INSTALLED_APPS:", INSTALLED_APPS)
 
 SITE_ID = 1
 LOGIN_REDIRECT_URL = '/'
@@ -65,7 +68,7 @@ ROOT_URLCONF = 'Torn.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [TEMPLATES_DIR],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -94,7 +97,7 @@ WSGI_APPLICATION = 'Torn.wsgi.application'
 
 # Remote DB
 DATABASES = {
-    'default': dj_database_url.parse(os.environ.get("DATABASE_URL"))
+   'default': dj_database_url.parse(env("DATABASE_URL"))
 }
 
 
