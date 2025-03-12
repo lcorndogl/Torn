@@ -15,6 +15,7 @@ import os
 import sys
 import dj_database_url
 import environ
+from celery import Celery
 
 env = environ.Env()
 
@@ -46,6 +47,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
+
+INSTALLED_APPS += ['django_celery_beat']
 
 SITE_ID = 1
 LOGIN_REDIRECT_URL = '/'
@@ -142,3 +145,27 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Celery configuration
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Torn.settings')
+
+app = Celery('Torn')
+
+# Using a string here means the worker doesn't have to serialize
+# the configuration object to child processes.
+# - namespace='CELERY' means all celery-related configuration keys
+#   should have a `CELERY_` prefix.
+app.config_from_object('django.conf:settings', namespace='CELERY')
+
+# Load task modules from all registered Django app configs.
+app.autodiscover_tasks()
+
+CELERY_BEAT_SCHEDULE = {
+    'fetch-rackets-every-hour': {
+        'task': 'racket.tasks.fetch_rackets_task',
+        'schedule': 3600.0,  # Run every hour
+    },
+}
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Example broker URL, adjust as needed
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Example result backend, adjust as needed
