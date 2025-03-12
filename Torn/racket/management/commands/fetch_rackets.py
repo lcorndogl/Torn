@@ -5,7 +5,11 @@ from racket.models import Racket, Territory
 from datetime import datetime
 from django.utils import timezone
 
+# Initialize environment variables
 env = environ.Env()
+environ.Env.read_env('/media/michael/HDD/torn/.env')  # Explicitly load the .env file
+
+# env = environ.Env()
 API_KEY = env('API_KEY')
 
 class Command(BaseCommand):
@@ -33,4 +37,5 @@ class Command(BaseCommand):
                 faction=item['faction'],
             )
 
-        self.stdout.write(self.style.SUCCESS('Successfully fetched and populated Racket data'))
+        timestamp = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.stdout.write(self.style.SUCCESS(f'Successfully fetched and populated Racket data at {timestamp}'))

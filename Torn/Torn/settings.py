@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-INSTALLED_APPS += ['django_celery_beat']
+# INSTALLED_APPS += ['django_celery_beat']
 
 SITE_ID = 1
 LOGIN_REDIRECT_URL = '/'
