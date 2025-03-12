@@ -19,7 +19,7 @@ app.autodiscover_tasks()
 
 app.conf.beat_schedule = {
     'fetch-rackets-every-minute': {
-        'task': 'rackets.tasks.fetch_rackets_task',
+        'task': 'racket.tasks.fetch_rackets_task',
         'schedule': crontab(minute='*'),  # Runs every minute
     },
 }

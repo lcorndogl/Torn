@@ -38,7 +38,7 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 # Application definition
 
 INSTALLED_APPS = [
-    'rackets',
+    'racket',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

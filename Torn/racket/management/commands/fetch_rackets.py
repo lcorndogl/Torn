@@ -1,7 +1,7 @@
 import requests
 import environ
 from django.core.management.base import BaseCommand
-from rackets.models import Rackets
+from racket.models import Racket, Territory
 from datetime import datetime
 from django.utils import timezone
 
@@ -9,7 +9,7 @@ env = environ.Env()
 API_KEY = env('API_KEY')
 
 class Command(BaseCommand):
-    help = 'Fetch rackets data from the API and populate the Rackets model'
+    help = 'Fetch rackets data from the API and populate the Racket model'
 
     def handle(self, *args, **kwargs):
         url = f'https://api.torn.com/torn/?selections=rackets&key={API_KEY}&comment=RacketCheck'
@@ -19,8 +19,12 @@ class Command(BaseCommand):
         for code, item in data['rackets'].items():
             created = timezone.make_aware(datetime.fromtimestamp(item['created']))
             changed = timezone.make_aware(datetime.fromtimestamp(item['changed']))
-            Rackets.objects.create(
-                territory=code,
+            territory, _ = Territory.objects.get_or_create(
+                code=code,
+                defaults={'name': item['name']}  # Use name field
+            )
+            Racket.objects.create(
+                territory=territory,
                 name=item['name'],
                 level=item['level'],
                 reward=item['reward'],
@@ -29,4 +33,4 @@ class Command(BaseCommand):
                 faction=item['faction'],
             )
 
-        self.stdout.write(self.style.SUCCESS('Successfully fetched and populated Rackets data'))
+        self.stdout.write(self.style.SUCCESS('Successfully fetched and populated Racket data'))
