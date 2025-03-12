@@ -3,6 +3,9 @@
 import os
 import sys
 
+# Add the virtual environment's site-packages to the PYTHONPATH
+venv_path = os.path.join(os.path.dirname(__file__), '..', '.venv', 'Lib', 'site-packages')
+sys.path.append(venv_path)
 
 def main():
     """Run administrative tasks."""
