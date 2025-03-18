@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% load humanize %}
+
+{% block title %}Rackets{% endblock %}
+
+{% block content %}
+<h1>Rackets</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Territory Code</th>
+            <th>Name</th>
+            <th>Level</th>
+            <th>Reward</th>
+            <th>Created</th>
+            <th>Changed</th>
+            <th>Faction</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for racket_data in rackets %}
+        <tr>
+            <td>{{ racket_data.racket.territory.code }}</td>
+            <td>{{ racket_data.racket.name }}</td>
+            <td>{{ racket_data.racket.level }}</td>
+            <td>{{ racket_data.racket.reward }}</td>
+            <td>{{ racket_data.racket.created|naturaltime }}</td>
+            <td>{{ racket_data.racket.changed|naturaltime }}</td>
+            <td>{{racket_data.racket.faction}}
+            </td>
+            <td>{{ racket_data.timestamp|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -21,6 +21,7 @@ env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
 
 # Ensure the .env file is read correctly
 env.read_env(BASE_DIR / '.env')
@@ -46,6 +47,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',  # Add this line if it's missing
+
 ]
 
 # INSTALLED_APPS += ['django_celery_beat']
