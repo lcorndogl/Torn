@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Company List</title>
+</head>
+
+<body>
+    <h1>Company List</h1>
+    <ul>
+        {% for company in companies %}
+        <li>{{ company.name }} (ID: {{ company.company_id }})</li>
+        {% endfor %}
+    </ul>
+</body>
+
+</html>

@@ -21,14 +21,15 @@ class Employee(models.Model):
     effectiveness_director_education = models.IntegerField()
     effectiveness_management = models.IntegerField()
     effectiveness_inactivity = models.IntegerField()
+    effectiveness_addiction = models.IntegerField(default=0)
     effectiveness_total = models.IntegerField()
     last_action_status = models.CharField(max_length=255)
     last_action_timestamp = models.DateTimeField()
     last_action_relative = models.CharField(max_length=255)
     status_description = models.CharField(max_length=255)
     status_state = models.CharField(max_length=255)
-    status_until = models.DateTimeField()
+    status_until = models.DateTimeField(null=True, blank=True)
     created_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('company', 'employee_id')
+        pass
