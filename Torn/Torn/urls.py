@@ -21,5 +21,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # path('territories/', include('racket.urls')),  # Include the racket app's URLs
     path('rackets/', include('racket.urls')),  # Include the racket app's URLs
+    path('company/', include('company.urls')),  # Include the company app's URLs
 
 ]
