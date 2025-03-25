@@ -22,6 +22,7 @@ class UserRecord(models.Model):
     status_until = models.IntegerField()
     position = models.CharField(max_length=255)
     created_on = models.DateTimeField(auto_now_add=True)
+    current_faction = models.ForeignKey('faction.FactionList', on_delete=models.CASCADE, to_field='faction_id')
 
     def __str__(self):
         return self.name
