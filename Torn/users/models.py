@@ -1,7 +1,14 @@
 from django.db import models
 
-class User(models.Model):
-    user_id = models.IntegerField()
+class UserList(models.Model):
+    user_id = models.IntegerField(primary_key=True)
+    game_name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.game_name
+
+class UserRecord(models.Model):
+    user_id = models.ForeignKey(UserList, on_delete=models.CASCADE, to_field='user_id')
     name = models.CharField(max_length=255)
     level = models.IntegerField()
     days_in_faction = models.IntegerField()

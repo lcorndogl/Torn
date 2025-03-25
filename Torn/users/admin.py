@@ -1,9 +1,13 @@
 from django.contrib import admin
-from .models import User
+from .models import UserList, UserRecord
 
-class UserAdmin(admin.ModelAdmin):
-    list_display = ('user_id', 'name', 'created_on')
+class UserListAdmin(admin.ModelAdmin):
+    list_display = ('user_id', 'game_name')
 
-admin.site.register(User, UserAdmin)
+class UserRecordAdmin(admin.ModelAdmin):
+    list_display = ('user_id', 'name', 'level', 'days_in_faction', 'created_on')
+
+admin.site.register(UserList, UserListAdmin)
+admin.site.register(UserRecord, UserRecordAdmin)
 
 # Register your models here.
