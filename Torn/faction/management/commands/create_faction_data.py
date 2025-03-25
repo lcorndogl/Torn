@@ -13,13 +13,20 @@ class Command(BaseCommand):
     help = 'Fetch faction data from the Torn API and insert it into the database'
 
     def handle(self, *args, **kwargs):
-        url = f'https://api.torn.com/faction/44758?selections=basic&key={API_KEY}'
+        url = f'https://api.torn.com/faction/9036?selections=basic&key={API_KEY}'
+        self.stdout.write(self.style.NOTICE(f'Fetching data from {url}'))
         response = requests.get(url)
+        
+        if response.status_code != 200:
+            self.stdout.write(self.style.ERROR(f'Failed to fetch data. Status code: {response.status_code}'))
+            return
+        
         data = response.json()
+        self.stdout.write(self.style.NOTICE(f'Response data: {data}'))
 
         # Check if the faction data exists
-        if 'faction' in data:
-            faction_data = data['faction']
+        if 'ID' in data:
+            faction_data = data
             faction, created = Faction.objects.update_or_create(
                 faction_id=faction_data['ID'],
                 defaults={
