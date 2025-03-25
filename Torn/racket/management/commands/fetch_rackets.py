@@ -16,7 +16,7 @@ class Command(BaseCommand):
     help = 'Fetch rackets data from the API and populate the Racket model'
 
     def handle(self, *args, **kwargs):
-        url = f'https://api.torn.com/torn/?selections=rackets&key={API_KEY}&comment=RacketCheck'
+        url = f'https://api.torn.com/torn/?selections=rackets&key={API_KEY}&comment=FetchRackets'
         response = requests.get(url)
         data = response.json()
 

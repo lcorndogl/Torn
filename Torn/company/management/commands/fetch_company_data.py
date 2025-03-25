@@ -7,7 +7,7 @@ class Command(BaseCommand):
     help = 'Fetch company data from the Torn API and insert it into the database'
 
     def handle(self, *args, **kwargs):
-        url = 'https://api.torn.com/company/104351?selections=profile,employees&key=bk8mXQgk2EvJyzrz'
+        url = 'https://api.torn.com/company/104351?selections=profile,employees&key={API_KEY}&comment=FetchCompany'
         response = requests.get(url)
         data = response.json()
 
