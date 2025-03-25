@@ -1,3 +1,20 @@
 from django.db import models
 
-# Create your models here.
+class User(models.Model):
+    user_id = models.IntegerField()
+    name = models.CharField(max_length=255)
+    level = models.IntegerField()
+    days_in_faction = models.IntegerField()
+    last_action_status = models.CharField(max_length=255)
+    last_action_timestamp = models.IntegerField()
+    last_action_relative = models.CharField(max_length=255)
+    status_description = models.CharField(max_length=255)
+    status_details = models.CharField(max_length=255, blank=True)
+    status_state = models.CharField(max_length=255)
+    status_color = models.CharField(max_length=50)
+    status_until = models.IntegerField()
+    position = models.CharField(max_length=255)
+    created_on = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
