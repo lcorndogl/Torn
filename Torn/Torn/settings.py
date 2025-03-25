@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'company',
     'faction',
     'racket',
+    'users',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
