@@ -1,7 +1,7 @@
 import requests
 import environ
 from django.core.management.base import BaseCommand
-from faction.models import Faction
+from faction.models import Faction, FactionList
 
 # Initialize environment variables
 env = environ.Env()
@@ -13,7 +13,7 @@ class Command(BaseCommand):
     help = 'Fetch faction data from the Torn API and add a new record for each unique faction ID'
 
     def handle(self, *args, **kwargs):
-        faction_ids = Faction.objects.values_list('faction_id', flat=True).distinct()
+        faction_ids = FactionList.objects.values_list('faction_id', flat=True).distinct()
         
         for faction_id in faction_ids:
             url = f'https://api.torn.com/faction/{faction_id}?selections=basic&key={API_KEY}'
@@ -31,9 +31,7 @@ class Command(BaseCommand):
             if 'ID' in data:
                 faction_data = data
                 Faction.objects.create(
-                    faction_id=faction_data['ID'],
-                    name=faction_data['name'],
-                    tag=faction_data['tag'],
+                    faction_id=FactionList.objects.get(faction_id=faction_data['ID']),
                     respect=faction_data['respect']
                 )
                 self.stdout.write(self.style.SUCCESS(f'Successfully added new faction {faction_data["name"]}'))

@@ -1,7 +1,7 @@
 import requests
 import environ
 from django.core.management.base import BaseCommand
-from faction.models import Faction
+from faction.models import FactionList
 
 # Initialize environment variables
 env = environ.Env()
@@ -13,7 +13,7 @@ class Command(BaseCommand):
     help = 'Fetch faction data from the Torn API and insert it into the database'
 
     def handle(self, *args, **kwargs):
-        url = f'https://api.torn.com/faction/9036?selections=basic&key={API_KEY}'
+        url = f'https://api.torn.com/faction/44758?selections=basic&key={API_KEY}'
         self.stdout.write(self.style.NOTICE(f'Fetching data from {url}'))
         response = requests.get(url)
         
@@ -27,12 +27,11 @@ class Command(BaseCommand):
         # Check if the faction data exists
         if 'ID' in data:
             faction_data = data
-            faction, created = Faction.objects.update_or_create(
+            faction, created = FactionList.objects.update_or_create(
                 faction_id=faction_data['ID'],
                 defaults={
                     'name': faction_data['name'],
-                    'tag': faction_data['tag'],
-                    'respect': faction_data['respect']
+                    'tag': faction_data['tag']
                 }
             )
             self.stdout.write(self.style.SUCCESS(f'Successfully {"created" if created else "updated"} faction {faction.name}'))
