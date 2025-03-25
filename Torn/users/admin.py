@@ -6,7 +6,7 @@ class UserListAdmin(admin.ModelAdmin):
 
 class UserRecordAdmin(admin.ModelAdmin):
     list_display = ('user_id', 'name', 'level', 'current_faction', 'days_in_faction', 'created_on')
-    list_filter = ('current_faction',)
+    list_filter = ('current_faction', 'user_id')
 
 
 admin.site.register(UserList, UserListAdmin)

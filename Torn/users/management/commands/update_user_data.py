@@ -39,22 +39,20 @@ class Command(BaseCommand):
                     if created:
                         self.stdout.write(self.style.SUCCESS(f'Created new user {user_list.game_name}'))
 
-                    UserRecord.objects.update_or_create(
+                    UserRecord.objects.create(
                         user_id=user_list,
-                        defaults={
-                            'name': member_data['name'],
-                            'level': member_data['level'],
-                            'days_in_faction': member_data['days_in_faction'],
-                            'last_action_status': member_data['last_action']['status'],
-                            'last_action_timestamp': member_data['last_action']['timestamp'],
-                            'last_action_relative': member_data['last_action']['relative'],
-                            'status_description': member_data['status']['description'],
-                            'status_details': member_data['status'].get('details', ''),
-                            'status_state': member_data['status']['state'],
-                            'status_color': member_data['status']['color'],
-                            'status_until': member_data['status']['until'],
-                            'position': member_data['position'],
-                            'current_faction_id': faction_id,
-                        }
+                        name=member_data['name'],
+                        level=member_data['level'],
+                        days_in_faction=member_data['days_in_faction'],
+                        last_action_status=member_data['last_action']['status'],
+                        last_action_timestamp=member_data['last_action']['timestamp'],
+                        last_action_relative=member_data['last_action']['relative'],
+                        status_description=member_data['status']['description'],
+                        status_details=member_data['status'].get('details', ''),
+                        status_state=member_data['status']['state'],
+                        status_color=member_data['status']['color'],
+                        status_until=member_data['status']['until'],
+                        position=member_data['position'],
+                        current_faction_id=faction_id,
                     )
-                    self.stdout.write(self.style.SUCCESS(f'Updated user record for {user_list.game_name}'))
+                    self.stdout.write(self.style.SUCCESS(f'Created user record for {user_list.game_name}'))
