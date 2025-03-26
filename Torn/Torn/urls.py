@@ -22,5 +22,6 @@ urlpatterns = [
     # path('territories/', include('racket.urls')),  # Include the racket app's URLs
     path('rackets/', include('racket.urls')),  # Include the racket app's URLs
     path('company/', include('company.urls')),  # Include the company app's URLs
+    path('faction/', include('faction.urls')),  # Include the faction app's URLs
 
 ]

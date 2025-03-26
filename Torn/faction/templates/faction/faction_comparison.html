@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% load custom_filters %}
+
+{% block title %}Faction Comparison{% endblock %}
+
+{% block content %}
+<h1>Faction Comparison</h1>
+<form method="post">
+    {% csrf_token %}
+    <label for="faction1">Select Faction 1:</label>
+    <select name="faction1" id="faction1">
+        {% for faction in factions %}
+        <option value="{{ faction.faction_id }}">{{ faction.name }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="faction2">Select Faction 2:</label>
+    <select name="faction2" id="faction2">
+        {% for faction in factions %}
+        <option value="{{ faction.faction_id }}">{{ faction.name }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit">Compare</button>
+</form>
+
+{% if faction1_data and faction2_data %}
+<h2>Comparison Results</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Date and Hour</th>
+            <th>{{ faction1_name }} Members</th>
+            <th>{{ faction2_name }} Members</th>
+            <th>{{ faction1_name }} User IDs</th>
+            <th>{{ faction2_name }} User IDs</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for date_hour in date_hours %}
+        <tr>
+            <td>{{ date_hour }}</td>
+            <td
+                style="background-color: rgba(255, 0, 0, {{ faction1_data|get_item:date_hour|default:0|div:max_value }});">
+                {{ faction1_data|get_item:date_hour }}
+            </td>
+            <td
+                style="background-color: rgba(255, 0, 0, {{ faction2_data|get_item:date_hour|default:0|div:max_value }});">
+                {{ faction2_data|get_item:date_hour }}
+            </td>
+            <td>
+                {% if faction1_data|get_item:date_hour == 1 %}
+                {{ faction1_users|get_item:date_hour|join:", " }}
+                {% endif %}
+            </td>
+            <td>
+                {% if faction2_data|get_item:date_hour == 1 %}
+                {{ faction2_users|get_item:date_hour|join:", " }}
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}
