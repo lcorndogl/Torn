@@ -54,6 +54,10 @@ def faction_comparison(request):
                         faction2_users[date_hour] = [record.user_id_id]
                     max_value = max(max_value, faction2_data[date_hour])
 
+            print("Faction 1 Data:", faction1_data)
+            print("Faction 2 Data:", faction2_data)
+            print("Date Hours:", sorted(set(faction1_data.keys()).union(set(faction2_data.keys())), reverse=True))
+
     context = {
         'factions': factions,
         'faction1_data': faction1_data,

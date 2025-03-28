@@ -33,6 +33,7 @@
             <th>Date and Hour</th>
             <th>{{ faction1_name }} Members</th>
             <th>{{ faction2_name }} Members</th>
+            <th>Delta ({{ faction1_name }} - {{ faction2_name }})</th>
             <th>{{ faction1_name }} User IDs</th>
             <th>{{ faction2_name }} User IDs</th>
         </tr>
@@ -43,11 +44,22 @@
             <td>{{ date_hour }}</td>
             <td
                 style="background-color: rgba(255, 0, 0, {{ faction1_data|get_item:date_hour|default:0|div:max_value }});">
+                {% if faction1_data|get_item:date_hour %}
                 {{ faction1_data|get_item:date_hour }}
+                {% else %}
+                0
+                {% endif %}
             </td>
             <td
                 style="background-color: rgba(255, 0, 0, {{ faction2_data|get_item:date_hour|default:0|div:max_value }});">
                 {{ faction2_data|get_item:date_hour }}
+            </td>
+            <td>
+                {% with faction1_data|get_item:date_hour|default:0 as faction1_value %}
+                {% with faction2_data|get_item:date_hour|default:0 as faction2_value %}
+                {{ faction1_value|subtract:faction2_value }}
+                {% endwith %}
+                {% endwith %}
             </td>
             <td>
                 {% if faction1_data|get_item:date_hour == 1 %}
