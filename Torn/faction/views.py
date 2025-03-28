@@ -13,6 +13,7 @@ def faction_comparison(request):
     faction1_name = ""
     faction2_name = ""
     max_value = 0
+    max_delta = 0  # Initialize max_delta
 
     if request.method == 'POST':
         faction1_id = request.POST.get('faction1')
@@ -54,9 +55,17 @@ def faction_comparison(request):
                         faction2_users[date_hour] = [record.user_id_id]
                     max_value = max(max_value, faction2_data[date_hour])
 
+            # Calculate max_delta
+            all_date_hours = sorted(set(faction1_data.keys()).union(set(faction2_data.keys())), reverse=True)
+            for date_hour in all_date_hours:
+                faction1_count = faction1_data.get(date_hour, 0)
+                faction2_count = faction2_data.get(date_hour, 0)
+                max_delta = max(max_delta, abs(faction1_count - faction2_count))
+
             print("Faction 1 Data:", faction1_data)
             print("Faction 2 Data:", faction2_data)
-            print("Date Hours:", sorted(set(faction1_data.keys()).union(set(faction2_data.keys())), reverse=True))
+            print("Date Hours:", all_date_hours)
+            print("Max Delta:", max_delta)
 
     context = {
         'factions': factions,
@@ -67,6 +76,7 @@ def faction_comparison(request):
         'faction1_name': faction1_name,
         'faction2_name': faction2_name,
         'max_value': max_value,
+        'max_delta': max_delta,  # Add max_delta to the context
         'date_hours': sorted(set(faction1_data.keys()).union(set(faction2_data.keys())), reverse=True),
     }
     return render(request, 'faction/faction_comparison.html', context)

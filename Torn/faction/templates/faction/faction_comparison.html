@@ -54,9 +54,11 @@
                 style="background-color: rgba(255, 0, 0, {{ faction2_data|get_item:date_hour|default:0|div:max_value }});">
                 {{ faction2_data|get_item:date_hour }}
             </td>
-            <td>
-                {% with faction1_data|get_item:date_hour|default:0 as faction1_value %}
-                {% with faction2_data|get_item:date_hour|default:0 as faction2_value %}
+            {% with faction1_data|get_item:date_hour|default:0 as faction1_value %}
+            {% with faction2_data|get_item:date_hour|default:0 as faction2_value %}
+            <td
+                style="background-color: rgba({% if faction1_value|subtract:faction2_value < 0 %} 255, 0, 0{% else %} 0, 255, 0{% endif %}, {{ faction1_value|subtract:faction2_value|absolute|default:0|div:max_delta }});">
+
                 {{ faction1_value|subtract:faction2_value }}
                 {% endwith %}
                 {% endwith %}

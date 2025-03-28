@@ -17,5 +17,5 @@ def subtract(value, arg):
     return value - arg
 
 @register.filter
-def abs(value):
+def absolute(value):
     return abs(value)
