@@ -7,7 +7,7 @@ class FactionList(models.Model):
     tag = models.CharField(max_length=5)
 
     def __str__(self):
-        return str(self.faction_id)
+        return self.name
 
 
 class Faction(models.Model):

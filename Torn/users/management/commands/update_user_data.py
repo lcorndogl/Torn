@@ -53,13 +53,44 @@ class Command(BaseCommand):
             # Check if the faction data exists
             if 'ID' in data:
                 faction_data = data
+                faction_list = FactionList.objects.get(
+                    faction_id=faction_data['ID'])
                 Faction.objects.create(
-                    faction_id=FactionList.objects.get(
-                        faction_id=faction_data['ID']),
+                    faction_id=faction_list,
                     respect=faction_data['respect']
                 )
                 self.stdout.write(self.style.SUCCESS(
                     f'Successfully added new faction {faction_data["name"]}'))
+
+                # Process members data
+                if 'members' in faction_data:
+                    for member_id, member_data in faction_data['members'].items():
+                        # Use member_id as user_id if 'user_id' is missing
+                        user_id = member_data.get('user_id', member_id)
+
+                        user_list, created = UserList.objects.get_or_create(
+                            user_id=user_id,
+                            defaults={'game_name': member_data['name']}
+                        )
+
+                        # Always create a new UserRecord entry
+                        UserRecord.objects.create(
+                            user_id=user_list,
+                            name=member_data['name'],
+                            level=member_data['level'],
+                            days_in_faction=member_data['days_in_faction'],
+                            last_action_status=member_data['last_action']['status'],
+                            last_action_timestamp=member_data['last_action']['timestamp'],
+                            last_action_relative=member_data['last_action']['relative'],
+                            status_description=member_data['status']['description'],
+                            status_details=member_data['status'].get(
+                                'details', ''),
+                            status_state=member_data['status']['state'],
+                            status_color=member_data['status']['color'],
+                            status_until=member_data['status']['until'],
+                            position=member_data['position'],
+                            current_faction=faction_list
+                        )
             else:
                 self.stdout.write(self.style.ERROR(
                     f'Failed to fetch faction data for faction ID {faction_id}'))
