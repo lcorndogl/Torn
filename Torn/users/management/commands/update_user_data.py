@@ -39,7 +39,7 @@ class Command(BaseCommand):
 
             # Make the API call
             url = f'https://api.torn.com/faction/{faction_id}?selections=basic&key={API_KEY}'
-            self.stdout.write(self.style.NOTICE(f'Fetching data from {url}'))
+            # self.stdout.write(self.style.NOTICE(f'Fetching data from {url}'))
             response = requests.get(url)
             # Record the timestamp of this call
             call_timestamps.append(time.time())
@@ -50,8 +50,8 @@ class Command(BaseCommand):
                 continue
 
             data = response.json()
-            self.stdout.write(self.style.NOTICE(
-                f'Response data for faction ID {faction_id}: {data}'))
+            # self.stdout.write(self.style.NOTICE(
+            #     f'Response data for faction ID {faction_id}: {data}'))
 
             # Check if the faction data exists
             if 'ID' in data:
