@@ -11,14 +11,18 @@
     <label for="faction1">Select Faction 1:</label>
     <select name="faction1" id="faction1">
         {% for faction in factions %}
-        <option value="{{ faction.faction_id }}">{{ faction.name }}</option>
+        <option value="{{ faction.faction_id }}" {% if faction.faction_id == default_faction1 %}selected{% endif %}>
+            {{ faction.name }}
+        </option>
         {% endfor %}
     </select>
 
     <label for="faction2">Select Faction 2:</label>
     <select name="faction2" id="faction2">
         {% for faction in factions %}
-        <option value="{{ faction.faction_id }}">{{ faction.name }}</option>
+        <option value="{{ faction.faction_id }}" {% if faction.faction_id == default_faction2 %}selected{% endif %}>
+            {{ faction.name }}
+        </option>
         {% endfor %}
     </select>
 

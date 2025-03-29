@@ -4,8 +4,25 @@ from users.models import UserRecord
 from .models import FactionList
 from datetime import datetime, timedelta
 
+
 def faction_comparison(request):
-    factions = FactionList.objects.all()
+    factions = FactionList.objects.all().order_by(
+        'name')  # Sort factions alphabetically
+    default_faction1 = None
+    default_faction2 = None
+
+    # Fetch the faction for user ID 2908770
+    user_record = UserRecord.objects.filter(user_id=2908770).first()
+    if user_record:
+        default_faction1 = user_record.current_faction_id
+
+        # Fetch the faction at war with the user's faction (if available)
+        war_faction = FactionList.objects.filter(
+            faction_id=user_record.current_faction_id).first()
+        # Assuming a relationship exists
+        if war_faction and hasattr(war_faction, 'at_war_with'):
+            default_faction2 = war_faction.at_war_with.faction_id
+
     faction1_data = {}
     faction2_data = {}
     faction1_users = {}
@@ -20,19 +37,24 @@ def faction_comparison(request):
         faction2_id = request.POST.get('faction2')
 
         if faction1_id and faction2_id:
-            faction1_name = FactionList.objects.get(faction_id=faction1_id).name
-            faction2_name = FactionList.objects.get(faction_id=faction2_id).name
+            faction1_name = FactionList.objects.get(
+                faction_id=faction1_id).name
+            faction2_name = FactionList.objects.get(
+                faction_id=faction2_id).name
 
             now = datetime.now()
             seven_days_ago = now - timedelta(days=7)
-            faction1_records = UserRecord.objects.filter(current_faction_id=faction1_id, last_action_timestamp__gte=seven_days_ago.timestamp())
-            faction2_records = UserRecord.objects.filter(current_faction_id=faction2_id, last_action_timestamp__gte=seven_days_ago.timestamp())
+            faction1_records = UserRecord.objects.filter(
+                current_faction_id=faction1_id, last_action_timestamp__gte=seven_days_ago.timestamp())
+            faction2_records = UserRecord.objects.filter(
+                current_faction_id=faction2_id, last_action_timestamp__gte=seven_days_ago.timestamp())
 
             faction1_seen = set()
             faction2_seen = set()
 
             for record in faction1_records:
-                date_hour = datetime.fromtimestamp(record.last_action_timestamp).strftime('%Y-%m-%d %a %H:00')
+                date_hour = datetime.fromtimestamp(
+                    record.last_action_timestamp).strftime('%Y-%m-%d %a %H:00')
                 if (date_hour, record.user_id_id) not in faction1_seen:
                     faction1_seen.add((date_hour, record.user_id_id))
                     if date_hour in faction1_data:
@@ -44,7 +66,8 @@ def faction_comparison(request):
                     max_value = max(max_value, faction1_data[date_hour])
 
             for record in faction2_records:
-                date_hour = datetime.fromtimestamp(record.last_action_timestamp).strftime('%Y-%m-%d %a %H:00')
+                date_hour = datetime.fromtimestamp(
+                    record.last_action_timestamp).strftime('%Y-%m-%d %a %H:00')
                 if (date_hour, record.user_id_id) not in faction2_seen:
                     faction2_seen.add((date_hour, record.user_id_id))
                     if date_hour in faction2_data:
@@ -56,11 +79,13 @@ def faction_comparison(request):
                     max_value = max(max_value, faction2_data[date_hour])
 
             # Calculate max_delta
-            all_date_hours = sorted(set(faction1_data.keys()).union(set(faction2_data.keys())), reverse=True)
+            all_date_hours = sorted(set(faction1_data.keys()).union(
+                set(faction2_data.keys())), reverse=True)
             for date_hour in all_date_hours:
                 faction1_count = faction1_data.get(date_hour, 0)
                 faction2_count = faction2_data.get(date_hour, 0)
-                max_delta = max(max_delta, abs(faction1_count - faction2_count))
+                max_delta = max(max_delta, abs(
+                    faction1_count - faction2_count))
 
             print("Faction 1 Data:", faction1_data)
             print("Faction 2 Data:", faction2_data)
@@ -69,6 +94,8 @@ def faction_comparison(request):
 
     context = {
         'factions': factions,
+        'default_faction1': default_faction1,
+        'default_faction2': default_faction2,
         'faction1_data': faction1_data,
         'faction2_data': faction2_data,
         'faction1_users': faction1_users,
