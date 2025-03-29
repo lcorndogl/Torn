@@ -21,6 +21,9 @@ class Command(BaseCommand):
             'faction_id', flat=True).distinct()
         call_timestamps = deque()  # Track timestamps of API calls
 
+        factions_to_create = []
+        user_records_to_create = []
+
         for faction_id in faction_ids:
             # Check if we need to delay to respect the rate limit
             current_time = time.time()
@@ -56,13 +59,18 @@ class Command(BaseCommand):
                 faction_list = FactionList.objects.get(
                     faction_id=faction_data['ID']
                 )
-                Faction.objects.create(
+                
+                # Construct the rank string
+                rank_data = faction_data.get('rank', {})
+                rank_name = rank_data.get('name', '')
+                rank_division = rank_data.get('division', 0)
+                rank = rank_name + (' ' + 'I' * rank_division if rank_division > 0 else '')
+
+                # Collect faction data for bulk creation
+                factions_to_create.append(Faction(
                     faction_id=faction_list,
                     respect=faction_data['respect'],
-                    rank=faction_data.get('rank', '')  # Add rank field
-                )
-                self.stdout.write(self.style.SUCCESS(
-                    f'Successfully added new faction {faction_data["name"]} with rank {faction_data.get("rank", "N/A")}'
+                    rank=rank
                 ))
 
                 # Process members data
@@ -71,13 +79,14 @@ class Command(BaseCommand):
                         # Use member_id as user_id if 'user_id' is missing
                         user_id = member_data.get('user_id', member_id)
 
+                        # Ensure UserList exists
                         user_list, created = UserList.objects.get_or_create(
                             user_id=user_id,
                             defaults={'game_name': member_data['name']}
                         )
 
-                        # Always create a new UserRecord entry
-                        UserRecord.objects.create(
+                        # Collect user record data for bulk creation
+                        user_records_to_create.append(UserRecord(
                             user_id=user_list,
                             name=member_data['name'],
                             level=member_data['level'],
@@ -93,7 +102,20 @@ class Command(BaseCommand):
                             status_until=member_data['status']['until'],
                             position=member_data['position'],
                             current_faction=faction_list
-                        )
+                        ))
             else:
                 self.stdout.write(self.style.ERROR(
                     f'Failed to fetch faction data for faction ID {faction_id}'))
+
+        # Bulk create factions and user records
+        if factions_to_create:
+            Faction.objects.bulk_create(factions_to_create)
+            self.stdout.write(self.style.SUCCESS(
+                f'Successfully added {len(factions_to_create)} factions in bulk.'
+            ))
+
+        if user_records_to_create:
+            UserRecord.objects.bulk_create(user_records_to_create)
+            self.stdout.write(self.style.SUCCESS(
+                f'Successfully added {len(user_records_to_create)} user records in bulk.'
+            ))

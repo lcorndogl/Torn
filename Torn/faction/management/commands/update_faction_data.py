@@ -62,8 +62,7 @@ class Command(BaseCommand):
                 if faction_list:
                     faction_list.name = faction_data['name']
                     faction_list.tag = faction_data.get('tag', '')
-                    faction_list.rank = faction_data.get(
-                        'rank', '')  # Update the rank field
+                    faction_list.rank = faction_data.get('rank', {}).get('name', '')  # Save only the rank name
                     factions_to_update.append(faction_list)
             else:
                 self.stdout.write(self.style.ERROR(
