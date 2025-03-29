@@ -62,6 +62,8 @@ class Command(BaseCommand):
                 if faction_list:
                     faction_list.name = faction_data['name']
                     faction_list.tag = faction_data.get('tag', '')
+                    faction_list.rank = faction_data.get(
+                        'rank', '')  # Update the rank field
                     factions_to_update.append(faction_list)
             else:
                 self.stdout.write(self.style.ERROR(
@@ -71,7 +73,7 @@ class Command(BaseCommand):
         if factions_to_update:
             with transaction.atomic():
                 FactionList.objects.bulk_update(
-                    factions_to_update, ['name', 'tag']
+                    factions_to_update, ['name', 'tag', 'rank']
                 )
             self.stdout.write(self.style.SUCCESS(
                 f'Successfully updated {len(factions_to_update)} factions in bulk.'

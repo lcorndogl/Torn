@@ -5,6 +5,8 @@ class FactionList(models.Model):
     faction_id = models.IntegerField(unique=True)
     name = models.CharField(max_length=255)
     tag = models.CharField(max_length=5)
+    rank = models.CharField(max_length=50, null=True,
+                            blank=True)  # Add this field
 
     def __str__(self):
         return self.name
