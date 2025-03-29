@@ -20,7 +20,8 @@ class Command(BaseCommand):
 
         for faction_id in faction_ids:
             url = f'https://api.torn.com/faction/{faction_id}?selections=basic&key={API_KEY}'
-            self.stdout.write(self.style.NOTICE(f'Fetching data from {url}'))
+            self.stdout.write(self.style.NOTICE(
+                f'Fetching data for faction {faction_id}'))
             response = requests.get(url)
 
             if response.status_code != 200:
@@ -29,8 +30,8 @@ class Command(BaseCommand):
                 continue
 
             data = response.json()
-            self.stdout.write(self.style.NOTICE(
-                f'Response data for faction ID {faction_id}: {data}'))
+            # self.stdout.write(self.style.NOTICE(
+            #     f'Response data for faction ID {faction_id}: {data}'))
 
             if 'members' in data:
                 members = data['members']
