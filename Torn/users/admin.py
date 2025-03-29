@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import UserList, UserRecord
+from import_export.admin import ImportExportModelAdmin
 
 class UserListAdmin(admin.ModelAdmin):
     list_display = ('user_id', 'game_name')
