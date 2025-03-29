@@ -54,13 +54,16 @@ class Command(BaseCommand):
             if 'ID' in data:
                 faction_data = data
                 faction_list = FactionList.objects.get(
-                    faction_id=faction_data['ID'])
+                    faction_id=faction_data['ID']
+                )
                 Faction.objects.create(
                     faction_id=faction_list,
-                    respect=faction_data['respect']
+                    respect=faction_data['respect'],
+                    rank=faction_data.get('rank', '')  # Add rank field
                 )
                 self.stdout.write(self.style.SUCCESS(
-                    f'Successfully added new faction {faction_data["name"]}'))
+                    f'Successfully added new faction {faction_data["name"]} with rank {faction_data.get("rank", "N/A")}'
+                ))
 
                 # Process members data
                 if 'members' in faction_data:

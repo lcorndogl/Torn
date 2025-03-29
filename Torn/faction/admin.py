@@ -1,9 +1,11 @@
 from django.contrib import admin
 from .models import Faction, FactionList
 
+
 @admin.register(Faction)
 class FactionAdmin(admin.ModelAdmin):
-    list_display = ('faction_id', 'faction_name', 'faction_tag', 'respect')
+    list_display = ('faction_id', 'faction_name',
+                    'rank', 'faction_tag', 'respect', 'timestamp')
     search_fields = ('faction_id__name', 'faction_id__tag')
     list_filter = ('respect',)
 
@@ -16,6 +18,7 @@ class FactionAdmin(admin.ModelAdmin):
         return obj.faction_id.tag
     faction_tag.admin_order_field = 'faction_id__tag'
     faction_tag.short_description = 'Faction Tag'
+
 
 @admin.register(FactionList)
 class FactionListAdmin(admin.ModelAdmin):
