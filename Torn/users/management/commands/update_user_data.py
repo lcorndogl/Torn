@@ -27,7 +27,7 @@ class Command(BaseCommand):
             while call_timestamps and current_time - call_timestamps[0] > 60:
                 call_timestamps.popleft()  # Remove timestamps older than 60 seconds
 
-            if len(call_timestamps) >= 60:
+            if len(call_timestamps) >= 50:
                 delay = 65 - (current_time - call_timestamps[0])
                 self.stdout.write(self.style.NOTICE(
                     f'Rate limit reached. Waiting for {delay:.2f} seconds...'))
