@@ -27,6 +27,6 @@ class FactionListAdmin(admin.ModelAdmin):
 
 @admin.register(OrganisedCrimeRole)
 class OrganisedCrimeRoleAdmin(admin.ModelAdmin):
-    list_display = ('level', 'crime_name', 'role', 'cpr', 'timestamp')
+    list_display = ('level', 'crime_name', 'role', 'required_cpr', 'timestamp')
     search_fields = ('level', 'crime_name', 'role')
     list_filter = ('level', 'crime_name',)

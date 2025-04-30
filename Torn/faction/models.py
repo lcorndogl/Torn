@@ -26,5 +26,5 @@ class OrganisedCrimeRole(models.Model):
     crime_name = models.CharField(max_length=255)
     level = models.CharField(max_length=50)
     role = models.CharField(max_length=50)
-    cpr = models.IntegerField()
+    required_cpr = models.IntegerField()
     timestamp = models.DateTimeField(auto_now_add=True)
