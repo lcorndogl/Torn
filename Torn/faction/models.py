@@ -20,3 +20,10 @@ class Faction(models.Model):
 
     def __str__(self):
         return self.faction_id.name
+
+
+class OrganisedCrimesRoles(models.Model):
+    level = models.CharField(max_length=50)
+    role = models.CharField(max_length=50)
+    cpr = models.IntegerField()
+    timestamp = models.DateTimeField(auto_now_add=True)
