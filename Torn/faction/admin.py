@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Faction, FactionList
+from .models import Faction, FactionList, OrganisedCrimeRole
 
 
 @admin.register(Faction)
@@ -24,3 +24,9 @@ class FactionAdmin(admin.ModelAdmin):
 class FactionListAdmin(admin.ModelAdmin):
     list_display = ('faction_id', 'name', 'tag')
     search_fields = ('name', 'tag')
+
+@admin.register(OrganisedCrimeRole)
+class OrganisedCrimeRoleAdmin(admin.ModelAdmin):
+    list_display = ('level', 'role', 'cpr', 'timestamp')
+    search_fields = ('level', 'role')
+    list_filter = ('level',)

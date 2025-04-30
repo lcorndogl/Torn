@@ -22,7 +22,7 @@ class Faction(models.Model):
         return self.faction_id.name
 
 
-class OrganisedCrimesRoles(models.Model):
+class OrganisedCrimeRole(models.Model):
     level = models.CharField(max_length=50)
     role = models.CharField(max_length=50)
     cpr = models.IntegerField()
