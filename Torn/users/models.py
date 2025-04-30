@@ -8,6 +8,9 @@ class UserList(models.Model):
     def __str__(self):
         return self.game_name
 
+    class Meta:
+        ordering = ['game_name']  # Sort by game_name alphabetically
+
 class UserRecord(models.Model):
     user_id = models.ForeignKey(UserList, on_delete=models.CASCADE, to_field='user_id')
     name = models.CharField(max_length=255)
