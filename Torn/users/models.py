@@ -1,4 +1,5 @@
 from django.db import models
+from faction.models import OrganisedCrimeRole  # Import the OrganisedCrimeRole model
 
 class UserList(models.Model):
     user_id = models.IntegerField(primary_key=True)
@@ -26,5 +27,16 @@ class UserRecord(models.Model):
 
     def __str__(self):
         return self.name
+
+class UserOrganisedCrimeCPR(models.Model):
+    user = models.ForeignKey(UserList, on_delete=models.CASCADE, to_field='user_id')
+    organised_crime_role = models.ForeignKey(OrganisedCrimeRole, on_delete=models.CASCADE)
+    user_cpr = models.IntegerField(null=True, blank=True)  # Nullable field for user CPR
+
+    class Meta:
+        unique_together = ('user', 'organised_crime_role')  # Ensure unique user-role pairs
+
+    def __str__(self):
+        return f"{self.user} - {self.organised_crime_role} - CPR: {self.user_cpr}"
 
 

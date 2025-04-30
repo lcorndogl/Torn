@@ -28,3 +28,6 @@ class OrganisedCrimeRole(models.Model):
     role = models.CharField(max_length=50)
     required_cpr = models.IntegerField()
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.crime_name} - {self.role}"
