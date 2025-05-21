@@ -23,6 +23,11 @@ def faction_comparison(request):
         if war_faction and hasattr(war_faction, 'at_war_with'):
             default_faction2 = war_faction.at_war_with.faction_id
 
+    # Calculate the timestamp for 7 days ago
+    now = datetime.now()
+    seven_days_ago = now - timedelta(days=7)
+    seven_days_ago_timestamp = seven_days_ago.timestamp()
+
     faction1_data = {}
     faction2_data = {}
     faction1_users = {}
@@ -42,12 +47,11 @@ def faction_comparison(request):
             faction2_name = FactionList.objects.get(
                 faction_id=faction2_id).name
 
-            now = datetime.now()
-            seven_days_ago = now - timedelta(days=7)
+            # Filter records for the last 7 days
             faction1_records = UserRecord.objects.filter(
-                current_faction_id=faction1_id, last_action_timestamp__gte=seven_days_ago.timestamp())
+                current_faction_id=faction1_id, last_action_timestamp__gte=seven_days_ago_timestamp)
             faction2_records = UserRecord.objects.filter(
-                current_faction_id=faction2_id, last_action_timestamp__gte=seven_days_ago.timestamp())
+                current_faction_id=faction2_id, last_action_timestamp__gte=seven_days_ago_timestamp)
 
             faction1_seen = set()
             faction2_seen = set()
