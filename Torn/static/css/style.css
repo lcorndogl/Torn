@@ -1,0 +1,184 @@
+/* CSS styles for the Torn web application */
+body {
+  font-family: sans-serif;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border: 1px solid black;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: #f0f0f0;
+}
+
+:root {
+  --jet: #2a2b2a;
+  --peri: #beb8eb;
+  --yel: #ffba08;
+  --red: #d62828;
+}
+
+body {
+  background-color: var(--jet);
+  color: var(--yel);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: "DynaPuff", "Press Start 2P", comic sans ms;
+}
+
+footer {
+  background-color: var(--jet);
+  color: var(--yel);
+  margin-top: auto;
+}
+
+main {
+  background-color: var(--jet);
+  color: var(--yel);
+  flex: 1;
+}
+
+.container,
+.container-fluid,
+.row,
+.card-body,
+.page-link,
+nav {
+  background-color: var(--jet);
+  color: var(--yel);
+}
+p {
+  color: var(--peri);
+}
+
+/* Navbar Hamburger Menu Styling */
+.navbar-toggler {
+  border-color: var(
+    --yel
+  ); /* Optional: Change the border color of the button */
+}
+
+.navbar-toggler-icon {
+  background-color: var(
+    --yel
+  ); /* Set the background color to match the text color */
+  border: 1px solid var(--yel); /* Optional: Add a border to the icon */
+}
+
+/* Button Styling */
+.btn-signup {
+  background-color: var(--peri);
+  color: var(--jet);
+}
+
+.btn-danger,
+.btn-danger:hover {
+  background-color: var(--red);
+}
+
+/* Card Styling */
+.card-body .post-link {
+  color: var(--yel);
+}
+.card-body .post-link:hover {
+  color: var(--peri);
+}
+
+.card {
+  color: var(--peri);
+}
+
+.card-text {
+  color: var(--peri) !important;
+}
+
+/* Navbar styling */
+.navbar {
+  background-color: var(--jet);
+  color: var(--yel);
+}
+
+.navbar a {
+  color: var(--yel);
+}
+
+.navbar a:hover {
+  color: var(--peri);
+}
+
+.select,
+.form-select {
+  background-color: var(--jet);
+  color: var(--yel);
+  border: 1px solid var(--peri); /* Adjust the border color here */
+}
+
+/* Styling for total comments */
+.total-comments {
+  color: var(--yel);
+}
+
+/* Table styling */
+.table {
+  background-color: var(--jet);
+  color: var(--yel);
+  border: 1px solid var(--peri);
+}
+
+.table th,
+.table td {
+  border: 1px solid var(--peri);
+}
+
+.table th {
+  background-color: var(--jet);
+  color: var(--yel);
+}
+
+.table td {
+  background-color: var(--jet);
+  color: var(--yel);
+}
+
+.table tr:hover {
+  background-color: var(--peri);
+  color: var(--jet);
+}
+
+/* Modal Styling  */
+.modal-content {
+  background-color: var(--jet);
+  color: var(--yel);
+}
+
+/* Form styling */
+.form-control {
+  background-color: var(--jet);
+  color: var(--yel);
+  border: 1px solid var(--peri);
+}
+
+.form-control:focus {
+  border-color: var(--peri);
+  box-shadow: 0 0 0 0.2rem rgba(128, 128, 128, 0.25);
+}
+
+.form-select {
+  background-color: var(--jet);
+  color: var(--yel);
+  border: 1px solid var(--peri);
+}
+
+.form-select:focus {
+  border-color: var(--peri);
+  box-shadow: 0 0 0 0.2rem rgba(128, 128, 128, 0.25);
+}

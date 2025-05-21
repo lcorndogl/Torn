@@ -1,45 +1,100 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html>
 
 <head>
-    <title>{% block title %}Torn App{% endblock %}</title>
-    <style>
-        body {
-            font-family: sans-serif;
-        }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escensio Incursus</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
-        th,
-        td {
-            border: 1px solid black;
-            padding: 8px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f0f0f0;
-        }
-    </style>
 </head>
 
 <body>
-    <header>
-        <h1>Torn App</h1>
-        <!-- Add navigation links here if you have them -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'faction_comparison' %}">
+                <img src="https://img.icons8.com/?size=100&id=J2AwyRUPwjyg&format=png&color=ffba08" width="30"
+                    height="30" class="d-inline-block align-top" alt="">
+                &ensp; Escensio Incursus
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            {% if user.is_authenticated %}
+            <!-- Code for Logged In navbar -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'faction_comparison' %}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'faction_comparison' %}">Profiles</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'faction_comparison' %}">Edit Profile ({{ user }})</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'faction_comparison' %}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+
+            {% else %}
+            <!-- Code for Logged Out Navbar  -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'faction_comparison' %}">Home (Faction Comparison)</a>
+                    </li>
+                    <!-- <li class="nav-item">
+                        <a class="nav-link" href="{% url 'faction_comparison' %}">Company (Faction Comparison)</a>
+                    </li> -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'faction_comparison' %}">Faction Comparison</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'rackets_list' %}">Rackets</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'faction_comparison' %}">Sign Up (Faction Comparison)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'faction_comparison' %}">Login (Faction Comparison)</a>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
     </header>
 
-    <main>
-        {% block content %}
-        {% endblock %}
-    </main>
 
-    <footer>
-        <p>&copy; 2025 My Torn App</p>
+    <div class="container mt-5">
+        <main class="flex-shrink-0 main-bg">
+            {% block content %}
+            <!-- Content Goes here -->
+            {% endblock content %}
+
+        </main>
+    </div>
+    <footer class="text-center text-lg-start mt-auto">
+        <div class="text-center p-3">
+            <p>&copy; 2025 ESC</p>
+        </div>
     </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    {% block extras %}
+    {% endblock %}
+
 </body>
 
 </html>
