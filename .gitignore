@@ -1,3 +1,7 @@
 .venv
 .env
 crons/*
+environ
+Torn/environ
+requests
+*.pyc
