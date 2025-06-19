@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% load custom_filters %}
+{% load static %}
+
+{% block title %}Faction Comparison{% endblock %}
+
+{% block content %}
+<h1>Workstat Effectiveness Over Time</h1>
+<canvas id="workstatChart" width="900" height="400"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<script>
+    // Load employee data from context variable
+    const rawData = {{ employee_data_json| safe }};
+
+    // Calculate the date 2 months ago
+    const now = new Date();
+    const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
+    const twoMonthsAgoStr = twoMonthsAgo.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+
+    // Group by employee and by day, keeping only the latest per day, and filter for last 2 months
+    const grouped = {};
+    rawData.forEach(row => {
+        const empId = row.employee_id;
+        const date = row.created_on.slice(0, 10); // 'YYYY-MM-DD'
+        if (date < twoMonthsAgoStr) return; // skip if older than 2 months
+        if (!grouped[empId]) grouped[empId] = {};
+        // Only keep the latest per day (since data is ordered by created_on descending in the view)
+        if (!grouped[empId][date] || grouped[empId][date].created_on < row.created_on) {
+            grouped[empId][date] = row;
+        }
+    });
+
+    // Prepare datasets for Chart.js
+    const colors = [
+        '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe',
+        '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'
+    ];
+    const datasets = Object.keys(grouped).map((empId, idx) => {
+        const data = Object.values(grouped[empId]).map(row => ({
+            x: row.created_on.slice(0, 10),
+            y: row.effectiveness_working_stats,
+            manual: row.manual_labour,
+            intelligence: row.intelligence,
+            endurance: row.endurance
+        }));
+        return {
+            label: Object.values(grouped[empId])[0].name,
+            data: data,
+            showLine: true,
+            borderColor: colors[idx % colors.length],
+            backgroundColor: colors[idx % colors.length],
+            tension: 0.2,
+            pointRadius: 4
+        };
+    });
+
+    const ctx = document.getElementById('workstatChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: datasets
+        },
+        options: {
+            plugins: {
+                legend: { display: true },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const d = context.raw;
+                            return [
+                                `${context.dataset.label}`,
+                                `Date: ${d.x}`,
+                                `Effectiveness: ${d.y}`,
+                                `Manual: ${d.manual}`,
+                                `Intelligence: ${d.intelligence}`,
+                                `Endurance: ${d.endurance}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'day' },
+                    adapters: { date: window.luxon },
+                    title: { display: true, text: 'Date' }
+                },
+                y: {
+                    title: { display: true, text: 'Effectiveness Working Stats' }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
