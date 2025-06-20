@@ -1,17 +1,14 @@
-<!DOCTYPE html>
-<html>
+{% extends 'base.html' %}
 
-<head>
-    <title>Company List</title>
-</head>
+{% load custom_filters %}
 
-<body>
-    <h1>Company List</h1>
-    <ul>
-        {% for company in companies %}
-        <li>{{ company.name }} (ID: {{ company.company_id }})</li>
-        {% endfor %}
-    </ul>
-</body>
+{% block title %}Faction Comparison{% endblock %}
 
-</html>
+{% block content %}
+<h1>Company List</h1>
+<ul>
+    {% for company in companies %}
+    <li>{{ company.name }} (ID: {{ company.company_id }})</li>
+    {% endfor %}
+</ul>
+{% endblock %}
