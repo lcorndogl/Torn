@@ -33,7 +33,7 @@ env.read_env(BASE_DIR / '.env')
 SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG')
+DEBUG = env.bool('DEBUG', default=False)
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.0.82', '0.0.0.0', 'lcorndogl.ddns.net','theratz.ddns.net', 'tangerine']
 
