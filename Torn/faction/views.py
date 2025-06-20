@@ -110,4 +110,9 @@ def faction_comparison(request):
         'max_delta': max_delta,  # Add max_delta to the context
         'date_hours': sorted(set(faction1_data.keys()).union(set(faction2_data.keys())), reverse=True),
     }
-    return render(request, 'faction/faction_comparison.html', context)
+    # Choose template based on URL name
+    if request.resolver_match and request.resolver_match.url_name == 'faction_comparison_graph':
+        template = 'faction/comparison_graph.html'
+    else:
+        template = 'faction/faction_comparison.html'
+    return render(request, template, context)

@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% load custom_filters %}
+
+{% block title %}Faction Comparison{% endblock %}
+
+{% block content %}
+<h1>Faction Comparison</h1>
+<form method="post">
+    {% csrf_token %}
+    <label for="faction1">Select Faction 1:</label>
+    <select name="faction1" id="faction1">
+        {% for faction in factions %}
+        <option value="{{ faction.faction_id }}" {% if faction.faction_id|stringformat:'s' == default_faction1|stringformat:'s' %}selected{% endif %}>{{ faction.name }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="faction2">Select Faction 2:</label>
+    <select name="faction2" id="faction2">
+        {% for faction in factions %}
+        <option value="{{ faction.faction_id }}" {% if faction.faction_id|stringformat:'s' == default_faction2|stringformat:'s' %}selected{% endif %}>{{ faction.name }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit">Compare</button>
+</form>
+
+{% if faction1_data and faction2_data %}
+<h2>Comparison Chart</h2>
+
+<!-- Safely pass data as JSON to JavaScript -->
+{{ date_hours|json_script:"date-hours-data" }}
+{{ faction1_data|json_script:"faction1-data" }}
+{{ faction2_data|json_script:"faction2-data" }}
+
+<canvas id="comparisonChart" width="900" height="400"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Parse data from JSON script tags
+    let labels = JSON.parse(document.getElementById('date-hours-data').textContent);
+    const faction1Dict = JSON.parse(document.getElementById('faction1-data').textContent);
+    const faction2Dict = JSON.parse(document.getElementById('faction2-data').textContent);
+
+    // Reverse labels and data arrays for oldest-to-newest x-axis
+    labels = labels.slice().reverse();
+    const faction1Data = labels.map(l => Number(faction1Dict[l] || 0));
+    const faction2Data = labels.map(l => Number(faction2Dict[l] || 0));
+    const deltaData = faction1Data.map((v, i) => v - faction2Data[i]);
+
+    const data = {
+        labels: labels,
+        datasets: [
+            {
+                label: '{{ faction1_name }}',
+                data: faction1Data,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                yAxisID: 'y',
+                showLine: true,
+                pointRadius: 4,
+                type: 'scatter',
+            },
+            {
+                label: '{{ faction2_name }}',
+                data: faction2Data,
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                yAxisID: 'y',
+                showLine: true,
+                pointRadius: 4,
+                type: 'scatter',
+            },
+            {
+                label: 'Delta',
+                data: deltaData,
+                borderColor: 'rgba(255, 206, 86, 1)',
+                backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                yAxisID: 'y1',
+                showLine: true,
+                pointRadius: 4,
+                type: 'scatter',
+            }
+        ]
+    };
+
+    const config = {
+        type: 'scatter',
+        data: data,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Faction Comparison Scatter Chart'
+                }
+            },
+            scales: {
+                x: {
+                    type: 'category',
+                    title: {
+                        display: true,
+                        text: 'Date and Hour'
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Members'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Delta'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                }
+            }
+        },
+    };
+
+    new Chart(
+        document.getElementById('comparisonChart'),
+        config
+    );
+</script>
+{% endif %}
+{% endblock %}
