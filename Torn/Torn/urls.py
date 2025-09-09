@@ -16,13 +16,18 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from . import views
 
 urlpatterns = [
+    path('', views.home, name='home'),  # Homepage
     path('admin/', admin.site.urls),
     # path('territories/', include('racket.urls')),  # Include the racket app's URLs
     path('rackets/', include('racket.urls')),  # Include the racket app's URLs
     path('company/', include('company.urls')),  # Include the company app's URLs
     path('faction/', include('faction.urls')),  # Include the faction app's URLs
     # path('', admin.site.urls),  # Redirect root URL to admin site
+    path("accounts/", include("allauth.urls")),
+    path('apiuse', views.api, name='apiuse'),
+
 
 ]

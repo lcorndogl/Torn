@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}API Terms of Service Guidelines - Escensio Incursus{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>API Terms of Service (ToS) Guidelines</h1>
+            <p class="lead">When creating a script, userscript, sheet, extension, API service, bot, 3rd party website or
+                any other API tool (collectively "service"), the end user must be aware of how will their API key be
+                used.</p>
+            <p>Here's a table with the information that is important to the end user - giving them a good idea of what
+                to expect from the API service they're using:</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">Data Storage</th>
+                            <th scope="col">Data Sharing</th>
+                            <th scope="col">Purpose of Use</th>
+                            <th scope="col">Key Storage & Sharing</th>
+                            <th scope="col">Key Access Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Will the data be stored for any purpose?</strong></td>
+                            <td><strong>Who can access the data besides the end user?</strong></td>
+                            <td><strong>What is the stored data being used for?</strong></td>
+                            <td><strong>Will the API key be stored securely and who can access it?</strong></td>
+                            <td><strong>What key access level or specific selections are required?</strong></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <ul class="list-unstyled mb-0">
+                                    <li class="text-success">• No / Only locally</li>
+                                    <li class="text-warning">• Temporary - less than a minute</li>
+                                    <li class="text-warning">• Temporary - less than a day</li>
+                                    <li class="text-danger">• Persistent - until account deletion</li>
+                                    <li class="text-danger">• Persistent - forever</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul class="list-unstyled mb-0">
+                                    <li class="text-success">• Nobody</li>
+                                    <li class="text-info">• Faction</li>
+                                    <li class="text-info">• Friends & faction</li>
+                                    <li class="text-warning">• General public</li>
+                                    <li class="text-danger">• Service owners</li>
+                                    <li class="text-danger">• Service owners & their customers</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul class="list-unstyled mb-0">
+                                    <li class="text-success">• Non malicious statistical analysis</li>
+                                    <li class="text-info">• Public amusement</li>
+                                    <li class="text-info">• Public community tools</li>
+                                    <li class="text-warning">• Competitive advantage <em>[Please specify]</em></li>
+                                    <li class="text-danger">• Personal gain <em>[Please specify]</em></li>
+                                    <li class="text-secondary">• Other <em>[Please specify]</em></li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul class="list-unstyled mb-0">
+                                    <li class="text-success">• Not stored / Not shared</li>
+                                    <li class="text-info">• Stored / Used only for automation</li>
+                                    <li class="text-warning">• Stored / Shared with the faction</li>
+                                    <li class="text-danger">• Stored / Shared with other services</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul class="list-unstyled mb-0">
+                                    <li class="text-success">• Public</li>
+                                    <li class="text-info">• Minimal</li>
+                                    <li class="text-warning">• Limited</li>
+                                    <li class="text-danger">• Full</li>
+                                    <li class="text-secondary">• Custom - specify selections</li>
+                                </ul>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="alert alert-info" role="alert">
+                <h5 class="alert-heading">Important Note</h5>
+                <p class="mb-0">Service providers must clearly communicate these aspects to their users before API key
+                    collection. Transparency builds trust and ensures users make informed decisions about sharing their
+                    API access.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Color Legend</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <span class="badge bg-success">Green</span> - Low risk / Recommended
+                        </div>
+                        <div class="col-md-3">
+                            <span class="badge bg-info">Blue</span> - Moderate risk / Acceptable
+                        </div>
+                        <div class="col-md-3">
+                            <span class="badge bg-warning">Yellow</span> - Higher risk / Caution
+                        </div>
+                        <div class="col-md-3">
+                            <span class="badge bg-danger">Red</span> - High risk / Careful consideration
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

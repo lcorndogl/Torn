@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Escensio Incursus{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div>
+                <h1 class="display-4">Welcome to Escensio Incursus</h1>
+                <p class="lead">A Torn City faction and racket management system.</p>
+                <hr class="my-4">
+                <p>Explore faction comparisons, racket data, and company statistics all in one place.</p>
+            </div>
+        </div>
+    </div>
+
+    {% if not user.is_authenticated %}
+    <div class="row mt-5">
+        <div class="col-md-12 text-center">
+            <h3>You are not logged in</h3>
+            <p>To access features you must sign up with your api key</p>
+            <a href="{% url 'account_signup' %}" class="btn btn-success btn-lg me-3">Sign Up</a>
+            <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg">Login</a>
+        </div>
+    </div>
+    {% else %}
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Faction Comparison</h5>
+                    <p class="card-text">Compare different factions and analyze their performance metrics.</p>
+                    <a href="{% url 'faction_comparison' %}" class="btn btn-primary">View Comparisons</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Rackets</h5>
+                    <p class="card-text">Browse and manage racket information and territory data.</p>
+                    <a href="{% url 'rackets_list' %}" class="btn btn-primary">View Rackets</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Company Stats</h5>
+                    <p class="card-text">View company employee statistics and work effectiveness data.</p>
+                    <a href="{% url 'company_list' %}" class="btn btn-primary">View Companies</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+
+</div>
+{% endblock %}
