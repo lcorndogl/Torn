@@ -17,7 +17,7 @@
 <body>
     <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'faction_comparison' %}">
+            <a class="navbar-brand" href="{% url 'home' %}">
                 <img src="https://img.icons8.com/?size=100&id=J2AwyRUPwjyg&format=png&color=ffba08" width="30"
                     height="30" class="d-inline-block align-top" alt="">
                 &ensp; Escensio Incursus
@@ -51,22 +51,19 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'faction_comparison' %}">Home (Faction Comparison)</a>
+                        <a class="nav-link" href="{% url 'home' %}">Home</a>
                     </li>
                     <!-- <li class="nav-item">
                         <a class="nav-link" href="{% url 'faction_comparison' %}">Company (Faction Comparison)</a>
                     </li> -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'faction_comparison' %}">Faction Comparison</a>
+                        <a class="nav-link" href="{% url 'account_signup' %}">Login</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'rackets_list' %}">Rackets</a>
+                        <a class="nav-link" href="{% url 'account_login' %}">Register</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'faction_comparison' %}">Sign Up (Faction Comparison)</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'faction_comparison' %}">Login (Faction Comparison)</a>
+                        <a class="nav-link" href="{% url 'apiuse' %}">API Use</a>
                     </li>
                 </ul>
             </div>
