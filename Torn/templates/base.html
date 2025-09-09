@@ -32,16 +32,25 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'faction_comparison' %}">Home</a>
+                        <a class="nav-link" href="{% url 'home' %}">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'faction_comparison' %}">Profiles</a>
+                        <a class="nav-link" href="{% url 'eternal_workstats' %}">Company</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'faction_comparison' %}">Edit Profile ({{ user }})</a>
+                        <a class="nav-link" href="{% url 'faction_comparison_graph' %}">Faction Graph</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'faction_comparison' %}">Logout</a>
+                        <a class="nav-link" href="{% url 'faction_comparison' %}">Faction</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'rackets_list' %}">Rackets</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'users:modify_profile' %}">Profile (Manage API Keys)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'account_logout' %}">Logout</a>
                     </li>
                 </ul>
             </div>
