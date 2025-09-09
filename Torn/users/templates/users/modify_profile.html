@@ -1,0 +1,115 @@
+{% extends "base.html" %} {% block content %}
+<h2>Manage API Keys</h2>
+
+<!-- Add New API Key Form -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5>Add New API Key</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" action="{% url 'users:addApiKey' %}">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-8">
+                    <label for="tornapi" class="form-label">Torn API Key:</label>
+                    <input type="text" class="form-control" id="tornapi" name="tornapi" placeholder="Enter your Torn API key" required />
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary" id="addApiBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        Add API Key
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- API Keys Table -->
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>API Key</th>
+                <th>Key ID</th>
+                <th>Active</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for profile in user_profiles %}
+            <tr>
+                <td>{{ profile.tornuser }}</td>
+                <td>
+                    <span class="api-key" data-full="{{ profile.tornapi }}">{{ profile.tornapi|slice:":8" }}...</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="toggleApiKey(this)">Show/Hide</button>
+                </td>
+                <td>
+                    <small class="text-muted">#{{ profile.id }}</small>
+                </td>
+                <td>
+                    <form method="post" action="{% url 'users:toggle_active' profile.id %}" style="display: inline">
+                        {% csrf_token %}
+                        <input type="checkbox" onchange="this.form.submit()" {% if profile.is_active %}checked{% endif %} />
+                    </form>
+                </td>
+                <td>
+                    <!-- Activate/Deactivate Button -->
+                    <form method="post" action="{% url 'users:toggle_active' profile.id %}" style="display: inline" class="me-2">
+                        {% csrf_token %} {% if profile.is_active %}
+                        <button type="submit" class="btn btn-sm btn-warning">Deactivate</button>
+                        {% else %}
+                        <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                        {% endif %}
+                    </form>
+
+                    <!-- Delete Button -->
+                    <form method="post" action="{% url 'users:delete_profile' profile.id %}" style="display: inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this API key?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">No API keys found. Use the form above to add one.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function toggleApiKey(button) {
+        const apiKeySpan = button.previousElementSibling;
+        const fullKey = apiKeySpan.dataset.full;
+        const currentText = apiKeySpan.textContent;
+
+        if (currentText.includes("...")) {
+            apiKeySpan.textContent = fullKey;
+        } else {
+            apiKeySpan.textContent = fullKey.slice(0, 8) + "...";
+        }
+    }
+
+    // Add loading state to the add API form (WITHOUT disabling the input)
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.querySelector('form[action*="add"]');
+        if (form) {
+            form.addEventListener("submit", function (e) {
+                const btn = document.getElementById("addApiBtn");
+                const spinner = btn.querySelector(".spinner-border");
+
+                // Show loading state
+                spinner.classList.remove("d-none");
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Fetching username...';
+
+                // DON'T disable the input field - that was the bug!
+                // The form needs to submit the input value
+            });
+        }
+    });
+</script>
+{% endblock %}

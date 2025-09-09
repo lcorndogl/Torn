@@ -57,10 +57,10 @@
                         <a class="nav-link" href="{% url 'faction_comparison' %}">Company (Faction Comparison)</a>
                     </li> -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account_signup' %}">Login</a>
+                        <a class="nav-link" href="{% url 'account_login' %}">Login</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account_login' %}">Register</a>
+                        <a class="nav-link" href="{% url 'account_signup' %}">Register</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'apiuse' %}">API Use</a>
@@ -74,6 +74,16 @@
 
 
     <div class="container mt-5">
+        <!-- Django Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
         <main class="flex-shrink-0 main-bg">
             {% block content %}
             <!-- Content Goes here -->

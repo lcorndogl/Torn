@@ -26,7 +26,8 @@ urlpatterns = [
     path('company/', include('company.urls')),  # Include the company app's URLs
     path('faction/', include('faction.urls')),  # Include the faction app's URLs
     # path('', admin.site.urls),  # Redirect root URL to admin site
-    path("accounts/", include("allauth.urls")),
+    path("users/", include("allauth.urls")),  # Authentication URLs
+    path('accounts/', include('users.urls')),  # User profile and account management
     path('apiuse', views.api, name='apiuse'),
 
 

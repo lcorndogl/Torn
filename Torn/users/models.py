@@ -1,5 +1,7 @@
 from django.db import models
-from faction.models import OrganisedCrimeRole  # Import the OrganisedCrimeRole model
+from django.contrib.auth.models import User
+from faction.models import OrganisedCrimeRole
+
 
 class UserList(models.Model):
     user_id = models.IntegerField(primary_key=True)
@@ -41,5 +43,37 @@ class UserOrganisedCrimeCPR(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.organised_crime_role} - CPR: {self.user_cpr}"
+
+
+class TornUserProfile(models.Model):
+    """
+    Model to store Torn-related information for each signed-in user.
+    Multiple profiles can be associated with one Django user
+    (many-to-one relationship).
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='torn_profiles'
+    )
+    tornuser = models.CharField(
+        max_length=255,
+        help_text="Torn username"
+    )
+    tornapi = models.CharField(
+        max_length=255,
+        help_text="Torn API key"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Torn User Profile"
+        verbose_name_plural = "Torn User Profiles"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.tornuser}"
 
 
