@@ -35,7 +35,7 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=False)
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.0.82', '0.0.0.0', 'lcorndogl.ddns.net','theratz.ddns.net', 'tangerine']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.0.82', '0.0.0.0', 'lcorndogl.freemyip.com', 'lcorndogl.ddns.net','theratz.ddns.net', 'tangerine']
 
 # Application definition
 
