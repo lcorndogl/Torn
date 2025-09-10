@@ -9,10 +9,10 @@ def company_list(request):
 
 def eternal_workstats(request):
     employees = Employee.objects.all()
-    # Prepare data for chart: include manual_labour, intelligence, endurance
+    # Prepare data for chart: include manual_labour, intelligence, endurance, and addiction
     employee_data = list(employees.values(
         'employee_id', 'name', 'created_on', 'effectiveness_working_stats',
-        'manual_labour', 'intelligence', 'endurance'))
+        'manual_labour', 'intelligence', 'endurance', 'effectiveness_addiction'))
     employee_data_json = mark_safe(json.dumps(employee_data, default=str))
     return render(request, 'company/eternal_workstats.html', {
         'employees': employees,
