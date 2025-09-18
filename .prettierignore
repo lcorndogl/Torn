@@ -1,0 +1,12 @@
+# Django Templates
+*.html
+**/templates/**/*.html
+**/templates/**
+
+# Django Template specific files
+**/*django*.html
+**/*template*.html
+
+# Common template directories
+templates/
+static/templates/

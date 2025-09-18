@@ -6,13 +6,40 @@
 {% block title %}Faction Comparison{% endblock %}
 
 {% block content %}
-<h1>Workstat Effectiveness Over Time</h1>
+<!-- Date Range Selection -->
+<div class="container-fluid mb-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Select Date Range</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="startDate" class="form-label">Start Date:</label>
+                            <input type="date" id="startDate" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="endDate" class="form-label">End Date:</label>
+                            <input type="date" id="endDate" class="form-control">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button id="updateCharts" class="btn btn-primary me-2">Update</button>
+                            <button id="resetRange" class="btn btn-secondary">Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h1 class="text-center">Workstat Effectiveness Over Time</h1>
 <canvas id="workstatChart" width="900" height="400"></canvas>
 
-<h1 style="margin-top: 40px;">Addiction Over Time (Last 2 Months)</h1>
+<h1 class="text-center" style="margin-top: 40px;">Addiction Over Time</h1>
 <canvas id="addictionChart" width="900" height="400"></canvas>
 
-<h1 style="margin-top: 40px;">7-Day Rolling Average Addiction (Daily)</h1>
+<h1 class="text-center" style="margin-top: 40px;">7-Day Rolling Average Addiction (Daily)</h1>
 <canvas id="avgAddictionChart" width="900" height="400"></canvas>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -21,52 +48,116 @@
 <script>
     // Load employee data from context variable
     const rawData = {{ employee_data_json| safe }};
-
-    // Calculate the date 2 months ago
-    const now = new Date();
-    const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
-    const twoMonthsAgoStr = twoMonthsAgo.toISOString().slice(0, 10); // 'YYYY-MM-DD'
-
-    // Group by employee and by day, keeping only the latest per day, and filter for last 2 months
-    const grouped = {};
-    rawData.forEach(row => {
-        const empId = row.employee_id;
-        const date = row.created_on.slice(0, 10); // 'YYYY-MM-DD'
-        if (date < twoMonthsAgoStr) return; // skip if older than 2 months
-        if (!grouped[empId]) grouped[empId] = {};
-        // Only keep the latest per day (since data is ordered by created_on descending in the view)
-        if (!grouped[empId][date] || grouped[empId][date].created_on < row.created_on) {
-            grouped[empId][date] = row;
+    const colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan'];
+    const now = new Date(); // Define now variable for any remaining old code references
+    
+    // Chart instances to destroy on update
+    let workstatChart, addictionChart, rollingAvgChart;
+    
+    // Initialize date inputs with default range (last 30 days)
+    function initializeDateInputs() {
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        
+        document.getElementById('endDate').value = now.toISOString().slice(0, 10);
+        document.getElementById('startDate').value = thirtyDaysAgo.toISOString().slice(0, 10);
+    }
+    
+    // Filter data based on selected date range
+    function filterDataByDateRange(data, startDate, endDate) {
+        return data.filter(row => {
+            const rowDate = row.created_on.slice(0, 10);
+            return rowDate >= startDate && rowDate <= endDate;
+        });
+    }
+    
+    // Main function to create all charts
+    function createCharts() {
+        console.log('createCharts function called');
+        
+        // Get selected date range
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        console.log('Start date:', startDate, 'End date:', endDate);
+        
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates');
+            return;
         }
-    });
+        
+        if (startDate > endDate) {
+            alert('Start date cannot be after end date');
+            return;
+        }
+        
+        // Filter data for selected range
+        const filteredData = filterDataByDateRange(rawData, startDate, endDate);
+        console.log('Filtered data length:', filteredData.length);
+        
+        if (filteredData.length === 0) {
+            alert('No data available for the selected date range');
+            return;
+        }
+        
+        // Destroy existing charts
+        console.log('Destroying existing charts...');
+        if (workstatChart) {
+            workstatChart.destroy();
+            console.log('Workstat chart destroyed');
+        }
+        if (addictionChart) {
+            addictionChart.destroy();
+            console.log('Addiction chart destroyed');
+        }
+        if (rollingAvgChart) {
+            rollingAvgChart.destroy();
+            console.log('Rolling avg chart destroyed');
+        }
+        
+        // Create charts with filtered data
+        console.log('Creating new charts...');
+        createWorkstatChart(filteredData);
+        createAddictionChart(filteredData);
+        createRollingAverageChart(filteredData, startDate, endDate);
+        console.log('Charts creation complete');
+    }
+    
+    function createWorkstatChart(data) {
+        // Group by employee and by day, keeping only the latest per day
+        const grouped = {};
+        data.forEach(row => {
+            const empId = row.employee_id;
+            const date = row.created_on.slice(0, 10);
+            if (!grouped[empId]) grouped[empId] = {};
+            if (!grouped[empId][date] || grouped[empId][date].created_on < row.created_on) {
+                grouped[empId][date] = row;
+            }
+        });
 
-    // Prepare datasets for Chart.js (Workstats)
-    const colors = [
-        '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe',
-        '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'
-    ];
-    const datasets = Object.keys(grouped).map((empId, idx) => {
-        const data = Object.values(grouped[empId]).map(row => ({
-            x: row.created_on.slice(0, 10),
-            y: row.effectiveness_working_stats,
-            manual: row.manual_labour,
-            intelligence: row.intelligence,
-            endurance: row.endurance
-        }));
-        return {
-            label: Object.values(grouped[empId])[0].name,
-            data: data,
-            showLine: true,
-            borderColor: colors[idx % colors.length],
-            backgroundColor: colors[idx % colors.length],
-            tension: 0.2,
-            pointRadius: 4
-        };
-    });
+        // Prepare datasets for Chart.js (Workstats)
+        const datasets = Object.keys(grouped).map((empId, idx) => {
+            const data = Object.values(grouped[empId]).map(row => ({
+                x: row.created_on.slice(0, 10),
+                y: row.effectiveness_working_stats,
+                manual: row.manual_labour,
+                intelligence: row.intelligence,
+                endurance: row.endurance
+            }));
+            return {
+                label: Object.values(grouped[empId])[0].name,
+                data: data,
+                showLine: true,
+                borderColor: colors[idx % colors.length],
+                backgroundColor: colors[idx % colors.length],
+                tension: 0.2,
+                pointRadius: 4
+            };
+        });
 
-    // Create Workstats Chart
-    const ctx = document.getElementById('workstatChart').getContext('2d');
-    new Chart(ctx, {
+        // Create Workstats Chart
+        const ctx = document.getElementById('workstatChart').getContext('2d');
+        workstatChart = new Chart(ctx, {
         type: 'scatter',
         data: {
             datasets: datasets
@@ -153,6 +244,8 @@
         tension: 0
     };
     
+    /*
+    // OLD ADDICTION CHART CODE - COMMENTED OUT FOR DATE RANGE FEATURE
     new Chart(ctx2, {
         type: 'scatter',
         data: {
@@ -193,6 +286,7 @@
             }
         }
     });
+    */
 
     // Find people with current addiction <= -8 (high addiction)
     const highAddictionPeople = [];
@@ -235,12 +329,16 @@
         addictionChart.parentNode.insertBefore(alertDiv, addictionChart);
     }
 
+    /*
+    // OLD CODE - COMMENTED OUT
     // Calculate 7-day rolling average addiction for the previous 7 days
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10);
     const fourteenDaysAgoStr = fourteenDaysAgo.toISOString().slice(0, 10);
+    */
 
+    /*
     // Group data for rolling average calculation (need 14 days of data)
     const rollingAvgGrouped = {};
     rawData.forEach(row => {
@@ -302,6 +400,8 @@
         };
     });
 
+    /*
+    // OLD ROLLING AVERAGE CHART CODE - COMMENTED OUT FOR DATE RANGE FEATURE
     // Create 7-Day Rolling Average Addiction Chart
     const ctx3 = document.getElementById('avgAddictionChart').getContext('2d');
     new Chart(ctx3, {
@@ -335,6 +435,293 @@
                     title: { display: true, text: '7-Day Rolling Average Addiction' }
                 }
             }
+        }
+    });
+    */
+    
+        }
+    
+    // END OLD CODE COMMENT */
+    
+    function createAddictionChart(data) {
+        // Group by employee and by day, keeping only the latest per day
+        const grouped = {};
+        data.forEach(row => {
+            const empId = row.employee_id;
+            const date = row.created_on.slice(0, 10);
+            if (!grouped[empId]) grouped[empId] = {};
+            if (!grouped[empId][date] || grouped[empId][date].created_on < row.created_on) {
+                grouped[empId][date] = row;
+            }
+        });
+
+        // Prepare datasets for Addiction Chart
+        const addictionDatasets = Object.keys(grouped).map((empId, idx) => {
+            const chartData = Object.values(grouped[empId]).map(row => ({
+                x: row.created_on.slice(0, 10),
+                y: Math.abs(row.effectiveness_addiction), // Make addiction positive
+                manual: row.manual_labour,
+                intelligence: row.intelligence,
+                endurance: row.endurance
+            }));
+            return {
+                label: Object.values(grouped[empId])[0].name,
+                data: chartData,
+                showLine: true,
+                borderColor: colors[idx % colors.length],
+                backgroundColor: colors[idx % colors.length],
+                tension: 0.2,
+                pointRadius: 4
+            };
+        });
+
+        // Get the full date range from all datasets for trend line
+        let minDate = null;
+        let maxDate = null;
+        addictionDatasets.forEach(dataset => {
+            dataset.data.forEach(point => {
+                if (!minDate || point.x < minDate) minDate = point.x;
+                if (!maxDate || point.x > maxDate) maxDate = point.x;
+            });
+        });
+
+        // Add trend line dataset at 10
+        const trendLineData = {
+            label: 'Trend Line (10)',
+            data: minDate && maxDate ? [
+                { x: minDate, y: 10 },
+                { x: maxDate, y: 10 }
+            ] : [],
+            borderColor: 'red',
+            backgroundColor: 'red',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointRadius: 0,
+            showLine: true,
+            tension: 0
+        };
+
+        // Create Addiction Chart
+        const ctx2 = document.getElementById('addictionChart').getContext('2d');
+        addictionChart = new Chart(ctx2, {
+            type: 'scatter',
+            data: {
+                datasets: [...addictionDatasets, trendLineData]
+            },
+            options: {
+                plugins: {
+                    legend: { display: true },
+                    tooltip: {
+                        filter: function(tooltipItem) {
+                            return tooltipItem.datasetIndex !== addictionDatasets.length;
+                        },
+                        callbacks: {
+                            label: function (context) {
+                                const d = context.raw;
+                                return [
+                                    `${context.dataset.label}`,
+                                    `Date: ${d.x}`,
+                                    `Addiction: ${d.y}`,
+                                    `Manual: ${d.manual}`,
+                                    `Intelligence: ${d.intelligence}`,
+                                    `Endurance: ${d.endurance}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'day' },
+                        adapters: { date: window.luxon },
+                        title: { display: true, text: 'Date' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Addiction (Positive Values)' }
+                    }
+                }
+            }
+        });
+
+        // Find people with current addiction <= -8 (high addiction)
+        const highAddictionPeople = [];
+        Object.keys(grouped).forEach(empId => {
+            const employeeData = Object.values(grouped[empId]);
+            if (employeeData.length > 0) {
+                const latestData = employeeData.reduce((latest, current) => 
+                    current.created_on > latest.created_on ? current : latest
+                );
+                const originalAddiction = latestData.effectiveness_addiction;
+                const absoluteAddiction = Math.abs(originalAddiction);
+                if (originalAddiction <= -8) {
+                    highAddictionPeople.push({
+                        name: latestData.name,
+                        employeeId: latestData.employee_id,
+                        addiction: absoluteAddiction.toFixed(2),
+                        originalValue: originalAddiction.toFixed(2),
+                        date: latestData.created_on.slice(0, 10)
+                    });
+                }
+            }
+        });
+
+        // Remove existing alerts
+        const existingAlerts = document.querySelectorAll('.alert-warning');
+        existingAlerts.forEach(alert => {
+            if (alert.innerHTML.includes('High Addiction Alert')) {
+                alert.remove();
+            }
+        });
+
+        // Display high addiction alert if there are any
+        if (highAddictionPeople.length > 0) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-warning mt-3 mb-3';
+            alertDiv.innerHTML = `
+                <h5><i class="fas fa-exclamation-triangle"></i> High Addiction Alert (≤-8)</h5>
+                <ul class="mb-0">
+                    ${highAddictionPeople.map(person => 
+                        `<li><strong><a href="https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}" target="_blank" style="color: #856404; text-decoration: none;">${person.name}</a></strong>: ${person.addiction} (original: ${person.originalValue}) (as of ${person.date})</li>`
+                    ).join('')}
+                </ul>
+            `;
+            const addictionChartElement = document.getElementById('addictionChart');
+            if (addictionChartElement) {
+                addictionChartElement.parentNode.insertBefore(alertDiv, addictionChartElement);
+            }
+        }
+    }
+    
+    function createRollingAverageChart(data, startDate, endDate) {
+        // Group data for rolling average calculation
+        const rollingAvgGrouped = {};
+        data.forEach(row => {
+            const empId = row.employee_id;
+            const date = row.created_on.slice(0, 10);
+            if (!rollingAvgGrouped[empId]) rollingAvgGrouped[empId] = {};
+            if (!rollingAvgGrouped[empId][date] || rollingAvgGrouped[empId][date].created_on < row.created_on) {
+                rollingAvgGrouped[empId][date] = row;
+            }
+        });
+
+        // Calculate 7-day rolling averages for each employee
+        const rollingAvgData = Object.keys(rollingAvgGrouped).map((empId, idx) => {
+            const employeeData = Object.values(rollingAvgGrouped[empId]);
+            if (employeeData.length === 0) return null;
+            
+            const employeeName = employeeData[0].name;
+            employeeData.sort((a, b) => a.created_on.localeCompare(b.created_on));
+            
+            const rollingAverages = [];
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            // Calculate rolling averages for each day in the range
+            const currentDate = new Date(start);
+            while (currentDate <= end) {
+                const targetDateStr = currentDate.toISOString().slice(0, 10);
+                const sevenDaysPrior = new Date(currentDate.getTime() - 6 * 24 * 60 * 60 * 1000);
+                const sevenDaysPriorStr = sevenDaysPrior.toISOString().slice(0, 10);
+                
+                const windowData = employeeData.filter(row => {
+                    const rowDate = row.created_on.slice(0, 10);
+                    return rowDate >= sevenDaysPriorStr && rowDate <= targetDateStr;
+                });
+                
+                if (windowData.length > 0) {
+                    const avgAddiction = windowData.reduce((sum, row) => sum + Math.abs(row.effectiveness_addiction), 0) / windowData.length;
+                    rollingAverages.push({
+                        x: targetDateStr,
+                        y: avgAddiction
+                    });
+                }
+                
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            return {
+                label: employeeName,
+                data: rollingAverages,
+                borderColor: colors[idx % colors.length],
+                backgroundColor: colors[idx % colors.length],
+                showLine: true,
+                tension: 0.2,
+                pointRadius: 4
+            };
+        }).filter(dataset => dataset !== null);
+
+        // Create 7-Day Rolling Average Addiction Chart
+        const ctx3 = document.getElementById('avgAddictionChart').getContext('2d');
+        rollingAvgChart = new Chart(ctx3, {
+            type: 'scatter',
+            data: {
+                datasets: rollingAvgData
+            },
+            options: {
+                plugins: {
+                    legend: { display: true },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return [
+                                    `${context.dataset.label}`,
+                                    `Date: ${context.raw.x}`,
+                                    `7-Day Avg Addiction: ${context.raw.y.toFixed(2)}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'day' },
+                        adapters: { date: window.luxon },
+                        title: { display: true, text: 'Date' }
+                    },
+                    y: {
+                        title: { display: true, text: '7-Day Rolling Average Addiction' }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Event listeners and initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM Content Loaded - setting up date range feature');
+        
+        // Initialize date inputs
+        initializeDateInputs();
+        console.log('Date inputs initialized');
+        
+        // Create initial charts with default range
+        createCharts();
+        console.log('Initial charts created');
+        
+        // Add event listeners
+        const updateButton = document.getElementById('updateCharts');
+        if (updateButton) {
+            updateButton.addEventListener('click', function() {
+                console.log('Update Charts button clicked!');
+                createCharts();
+            });
+            console.log('Update button event listener added');
+        } else {
+            console.error('Update Charts button not found!');
+        }
+        
+        const resetButton = document.getElementById('resetRange');
+        if (resetButton) {
+            resetButton.addEventListener('click', function() {
+                console.log('Reset Range button clicked!');
+                initializeDateInputs();
+                createCharts();
+            });
+            console.log('Reset button event listener added');
+        } else {
+            console.error('Reset Range button not found!');
         }
     });
 </script>

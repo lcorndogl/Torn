@@ -1,0 +1,16 @@
+{
+    "profile": "django",
+    "extension": "html",
+    "indent": 4,
+    "max_line_length": 120,
+    "preserve_leading_space": true,
+    "preserve_blank_lines": true,
+    "format_attribute_template_tags": false,
+    "format_js": false,
+    "format_css": false,
+    "ignore": "H006,H030,H031,H025,H021",
+    "indent_js": false,
+    "indent_css": false,
+    "blank_line_after_tag": "load,extends,include",
+    "blank_line_before_tag": "load,extends,include"
+}

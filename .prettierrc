@@ -1,0 +1,21 @@
+{
+  "printWidth": 80,
+  "tabWidth": 4,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "es5",
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "overrides": [
+    {
+      "files": ["**/templates/**/*.html", "**/*django*.html"],
+      "options": {
+        "parser": "html",
+        "printWidth": 200,
+        "htmlWhitespaceSensitivity": "ignore",
+        "singleAttributePerLine": false
+      }
+    }
+  ]
+}
