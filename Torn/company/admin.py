@@ -7,8 +7,8 @@ class CompanyAdmin(admin.ModelAdmin):
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
-    list_display = ('employee_id', 'name', 'company_name', 'position', 'effectiveness_working_stats','manual_labour', 'intelligence', 'endurance', 'created_on')
-    list_filter = ('name', 'position')
+    list_display = ('employee_id', 'name', 'company_name', 'position', 'effectiveness_working_stats','manual_labour', 'intelligence', 'endurance', 'status_description','created_on')
+    list_filter = ('name', 'position', 'status_description')
 
 
     def company_name(self, obj):

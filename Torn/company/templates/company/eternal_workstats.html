@@ -288,7 +288,7 @@
     });
     */
 
-    // Find people with current addiction <= -8 (high addiction)
+    // Find people with current addiction <= -6 (high addiction)
     const highAddictionPeople = [];
     Object.keys(grouped).forEach(empId => {
         const employeeData = Object.values(grouped[empId]);
@@ -300,12 +300,12 @@
             const originalAddiction = latestData.effectiveness_addiction; // Original negative value
             const absoluteAddiction = Math.abs(originalAddiction);
             // Check if original addiction is -8 or lower (meaning high addiction)
-            if (originalAddiction <= -8) {
+            if (originalAddiction <= -6) {
                 highAddictionPeople.push({
                     name: latestData.name,
                     employeeId: latestData.employee_id,
-                    addiction: absoluteAddiction.toFixed(2),
-                    originalValue: originalAddiction.toFixed(2),
+                    addiction: absoluteAddiction.toFixed(0),
+                    originalValue: originalAddiction.toFixed(0),
                     date: latestData.created_on.slice(0, 10)
                 });
             }
@@ -317,7 +317,7 @@
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert alert-warning mt-3 mb-3';
         alertDiv.innerHTML = `
-            <h5><i class="fas fa-exclamation-triangle"></i> High Addiction Alert (≤-8)</h5>
+            <h5><i class="fas fa-exclamation-triangle"></i> High Addiction Alert (≤-6)</h5>
             <ul class="mb-0">
                 ${highAddictionPeople.map(person => 
                     `<li><strong><a href="https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}" target="_blank" style="color: #856404; text-decoration: none;">${person.name}</a></strong>: ${person.addiction} (original: ${person.originalValue}) (as of ${person.date})</li>`
@@ -544,7 +544,7 @@
             }
         });
 
-        // Find people with current addiction <= -8 (high addiction)
+        // Find people with current addiction <= -6 (high addiction)
         const highAddictionPeople = [];
         Object.keys(grouped).forEach(empId => {
             const employeeData = Object.values(grouped[empId]);
@@ -554,12 +554,12 @@
                 );
                 const originalAddiction = latestData.effectiveness_addiction;
                 const absoluteAddiction = Math.abs(originalAddiction);
-                if (originalAddiction <= -8) {
+                if (originalAddiction <= -6) {
                     highAddictionPeople.push({
                         name: latestData.name,
                         employeeId: latestData.employee_id,
-                        addiction: absoluteAddiction.toFixed(2),
-                        originalValue: originalAddiction.toFixed(2),
+                        addiction: absoluteAddiction.toFixed(0),
+                        originalValue: originalAddiction.toFixed(0),
                         date: latestData.created_on.slice(0, 10)
                     });
                 }
@@ -579,10 +579,10 @@
             const alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-warning mt-3 mb-3';
             alertDiv.innerHTML = `
-                <h5><i class="fas fa-exclamation-triangle"></i> High Addiction Alert (≤-8)</h5>
+                <h5><i class="fas fa-exclamation-triangle"></i> High Addiction Alert (≤-6)</h5>
                 <ul class="mb-0">
                     ${highAddictionPeople.map(person => 
-                        `<li><strong><a href="https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}" target="_blank" style="color: #856404; text-decoration: none;">${person.name}</a></strong>: ${person.addiction} (original: ${person.originalValue}) (as of ${person.date})</li>`
+                        `<li><strong><a href="https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}" target="_blank" style="color: #856404; text-decoration: none;">${person.name}</a></strong>: ${person.addiction} (original: ${person.originalValue})</li>`
                     ).join('')}
                 </ul>
             `;
