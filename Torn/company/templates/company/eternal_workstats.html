@@ -582,7 +582,7 @@
                 <h5><i class="fas fa-exclamation-triangle"></i> High Addiction Alert (≤-6)</h5>
                 <ul class="mb-0">
                     ${highAddictionPeople.map(person => 
-                        `<li><strong><a href="https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}" target="_blank" style="color: #856404; text-decoration: none;">${person.name}</a></strong>: ${person.addiction} (original: ${person.originalValue})</li>`
+                        `<li><strong><a href="https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}" target="_blank" style="color: #856404; text-decoration: none;">${person.name}</a></strong>: ${person.addiction}</li>`
                     ).join('')}
                 </ul>
             `;
