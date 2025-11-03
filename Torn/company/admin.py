@@ -11,7 +11,7 @@ class EmployeeAdmin(admin.ModelAdmin):
     list_filter = ('position', 'status_description', 'company')
     search_fields = ('name', 'position', 'employee_id')
     readonly_fields = ('employee_id', 'created_on')
-    ordering = ('-wage', 'name')  # Order by wage (highest first), then by name
+    ordering = ('-created_on', '-wage', 'name')  # First by creation date (newest first), then by wage (highest first), then by name
     
     fieldsets = (
         ('Basic Information', {
