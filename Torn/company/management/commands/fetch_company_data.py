@@ -26,6 +26,11 @@ class Command(BaseCommand):
         
         self.stdout.write(f'Using {key_type} for API requests')
         
+        # Create a normalized timestamp for this fetch (rounded to the minute)
+        fetch_time = datetime.now()
+        normalized_time = fetch_time.replace(second=0, microsecond=0)
+        self.stdout.write(f'Using normalized timestamp: {normalized_time}')
+        
         url = f'https://api.torn.com/company/110380?selections=profile,employees&key={api_key}&comment=FetchCompany'
         response = requests.get(url)
         data = response.json()
@@ -80,7 +85,7 @@ class Command(BaseCommand):
                     status_description=employee_data['status']['description'],
                     status_state=employee_data['status']['state'],
                     status_until=status_until,
-                    created_on=datetime.now()
+                    created_on=normalized_time  # Use normalized timestamp for all employees in this fetch
                 )
             
             self.stdout.write(f'Processed {total_employees} employees')

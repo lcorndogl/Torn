@@ -30,7 +30,7 @@ class Employee(models.Model):
     status_description = models.CharField(max_length=255)
     status_state = models.CharField(max_length=255)
     status_until = models.DateTimeField(null=True, blank=True)
-    created_on = models.DateTimeField(auto_now_add=True)
+    created_on = models.DateTimeField()  # Remove auto_now_add to allow manual setting
 
     class Meta:
         pass
