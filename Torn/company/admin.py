@@ -7,11 +7,54 @@ class CompanyAdmin(admin.ModelAdmin):
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
-    list_display = ('employee_id', 'name', 'company_name', 'position', 'effectiveness_working_stats','manual_labour', 'intelligence', 'endurance', 'status_description','created_on')
-    list_filter = ('name', 'position', 'status_description')
+    list_display = ('employee_id', 'name', 'company_name', 'position', 'formatted_wage', 'effectiveness_working_stats','manual_labour', 'intelligence', 'endurance', 'status_description','created_on')
+    list_filter = ('position', 'status_description', 'company')
+    search_fields = ('name', 'position', 'employee_id')
+    readonly_fields = ('employee_id', 'created_on')
+    ordering = ('-wage', 'name')  # Order by wage (highest first), then by name
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('employee_id', 'name', 'company', 'position')
+        }),
+        ('Financial', {
+            'fields': ('wage',)
+        }),
+        ('Stats', {
+            'fields': ('manual_labour', 'intelligence', 'endurance'),
+            'classes': ('collapse',)  # Make this section collapsible
+        }),
+        ('Effectiveness', {
+            'fields': (
+                'effectiveness_working_stats', 'effectiveness_settled_in', 
+                'effectiveness_merits', 'effectiveness_director_education',
+                'effectiveness_management', 'effectiveness_inactivity',
+                'effectiveness_addiction', 'effectiveness_total'
+            ),
+            'classes': ('collapse',)  # Make this section collapsible
+        }),
+        ('Status & Activity', {
+            'fields': (
+                'last_action_status', 'last_action_timestamp', 'last_action_relative',
+                'status_description', 'status_state', 'status_until'
+            ),
+            'classes': ('collapse',)  # Make this section collapsible
+        }),
+        ('Metadata', {
+            'fields': ('created_on',),
+            'classes': ('collapse',)
+        })
+    )
 
 
     def company_name(self, obj):
         return obj.company.name
     company_name.admin_order_field = 'company'  # Allows column order sorting
     company_name.short_description = 'Company Name'  # Renames column head
+
+    def formatted_wage(self, obj):
+        if obj.wage is not None:
+            return f"${obj.wage:,}"
+        return "Not available"
+    formatted_wage.admin_order_field = 'wage'  # Allows column order sorting
+    formatted_wage.short_description = 'Wage'  # Renames column head
