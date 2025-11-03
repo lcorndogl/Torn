@@ -15,7 +15,18 @@ class Command(BaseCommand):
     help = 'Fetch company data from the Torn API and insert it into the database'
 
     def handle(self, *args, **kwargs):
-        url = f'https://api.torn.com/company/110380?selections=profile,employees&key={API_KEY}&comment=FetchCompany'
+        # Try PC_KEY first for wage data, fallback to API_KEY if not available
+        pc_key = env('PC_KEY', default=None)
+        if pc_key:
+            api_key = pc_key
+            key_type = "PC_KEY"
+        else:
+            api_key = API_KEY
+            key_type = "API_KEY"
+        
+        self.stdout.write(f'Using {key_type} for API requests')
+        
+        url = f'https://api.torn.com/company/110380?selections=profile,employees&key={api_key}&comment=FetchCompany'
         response = requests.get(url)
         data = response.json()
 
@@ -32,6 +43,9 @@ class Command(BaseCommand):
 
         # Check if the employees data exists
         if 'company_employees' in data:
+            wage_count = 0
+            total_employees = len(data['company_employees'])
+            
             for employee_id, employee_data in data['company_employees'].items():
                 status_until = employee_data['status']['until']
                 if status_until == 0:
@@ -39,11 +53,16 @@ class Command(BaseCommand):
                 else:
                     status_until = datetime.fromtimestamp(status_until)
 
+                wage = employee_data.get('wage')
+                if wage is not None:
+                    wage_count += 1
+
                 Employee.objects.create(
                     employee_id=employee_id,
                     company=company,
                     name=employee_data['name'],
                     position=employee_data['position'],
+                    wage=wage,  # Will be None if not available
                     manual_labour=employee_data.get('manual_labor', 0),
                     intelligence=employee_data.get('intelligence', 0),
                     endurance=employee_data.get('endurance', 0),
@@ -63,6 +82,12 @@ class Command(BaseCommand):
                     status_until=status_until,
                     created_on=datetime.now()
                 )
+            
+            self.stdout.write(f'Processed {total_employees} employees')
+            if wage_count > 0:
+                self.stdout.write(self.style.SUCCESS(f'Wage data available for {wage_count}/{total_employees} employees'))
+            else:
+                self.stdout.write(self.style.WARNING(f'No wage data available (try using PC_KEY for wage access)'))
         else:
             self.stdout.write(self.style.WARNING('No employees data found in the response'))
 

@@ -12,6 +12,7 @@ class Employee(models.Model):
     employee_id = models.IntegerField()
     name = models.CharField(max_length=255)
     position = models.CharField(max_length=255)
+    wage = models.BigIntegerField(null=True, blank=True)  # Using BigIntegerField for large wage values
     manual_labour = models.IntegerField()
     intelligence = models.IntegerField()
     endurance = models.IntegerField()
