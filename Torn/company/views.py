@@ -23,10 +23,10 @@ def eternal_workstats(request):
 def employees(request):
     # Filter employees to only show those from company ID 110380
     employees = Employee.objects.filter(company__company_id=110380)
-    # Prepare data for chart: include manual_labour, intelligence, endurance, and addiction
+    # Prepare data for chart: include manual_labour, intelligence, endurance, addiction, and inactivity
     employee_data = list(employees.values(
         'employee_id', 'name', 'created_on', 'effectiveness_working_stats',
-        'manual_labour', 'intelligence', 'endurance', 'effectiveness_addiction'))
+        'manual_labour', 'intelligence', 'endurance', 'effectiveness_addiction', 'effectiveness_inactivity'))
     employee_data_json = mark_safe(json.dumps(employee_data, default=str))
     return render(request, 'company/employees.html', {
         'employees': employees,

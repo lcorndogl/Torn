@@ -33,6 +33,37 @@
     </div>
 </div>
 
+<!-- Stat Reductions Alert Grid -->
+<div class="container-fluid mb-4">
+    <h2 class="text-center mb-4">Stat Reductions Overview</h2>
+    <div class="row d-flex">
+        <div class="col-md-4 d-flex">
+            <div class="alert alert-danger flex-fill text-center">
+                <h5 class="mb-3"><i class="fas fa-exclamation-triangle"></i> Total Reductions (Inactivity + Addiction ≤ -8)</h5>
+                <div id="totalReductionsAlerts">
+                    <!-- Total reductions alerts will be inserted here -->
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 d-flex">
+            <div class="alert alert-warning flex-fill text-center">
+                <h5 class="mb-3"><i class="fas fa-exclamation-triangle"></i> Current Addictions (≤ -6)</h5>
+                <div id="addictionAlerts">
+                    <!-- Addiction alerts will be inserted here -->
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 d-flex">
+            <div class="alert alert-info flex-fill text-center">
+                <h5 class="mb-3"><i class="fas fa-info-circle"></i> Inactivity Issues (< 0)</h5>
+                <div id="inactivityAlerts">
+                    <!-- Inactivity alerts will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <h1 class="text-center">Workstat Effectiveness Over Time</h1>
 <canvas id="workstatChart" width="900" height="400"></canvas>
 
@@ -115,12 +146,137 @@
             console.log('Rolling avg chart destroyed');
         }
         
-        // Create charts with filtered data
-        console.log('Creating new charts...');
+        // Create charts and populate alerts with filtered data
+        console.log('Creating new charts and populating alerts...');
+        populateStatReductionAlerts(filteredData);
         createWorkstatChart(filteredData);
         createAddictionChart(filteredData);
         createRollingAverageChart(filteredData, startDate, endDate);
         console.log('Charts creation complete');
+    }
+    
+    function populateStatReductionAlerts(data) {
+        // Group by employee and by day, keeping only the latest per day
+        const grouped = {};
+        data.forEach(row => {
+            const empId = row.employee_id;
+            const date = row.created_on.slice(0, 10);
+            if (!grouped[empId]) grouped[empId] = {};
+            if (!grouped[empId][date] || grouped[empId][date].created_on < row.created_on) {
+                grouped[empId][date] = row;
+            }
+        });
+
+        // Find people with current total reductions <= -8
+        const totalReductionPeople = [];
+        Object.keys(grouped).forEach(empId => {
+            const employeeData = Object.values(grouped[empId]);
+            if (employeeData.length > 0) {
+                const latestData = employeeData.reduce((latest, current) => 
+                    current.created_on > latest.created_on ? current : latest
+                );
+                const totalReduction = latestData.effectiveness_inactivity + latestData.effectiveness_addiction;
+                if (totalReduction <= -8) {
+                    totalReductionPeople.push({
+                        name: latestData.name,
+                        employeeId: latestData.employee_id,
+                        totalReduction: totalReduction.toFixed(2),
+                        inactivity: latestData.effectiveness_inactivity.toFixed(2),
+                        addiction: latestData.effectiveness_addiction.toFixed(2),
+                        date: latestData.created_on.slice(0, 10)
+                    });
+                }
+            }
+        });
+
+        // Find people with current addiction <= -6
+        const highAddictionPeople = [];
+        Object.keys(grouped).forEach(empId => {
+            const employeeData = Object.values(grouped[empId]);
+            if (employeeData.length > 0) {
+                const latestData = employeeData.reduce((latest, current) => 
+                    current.created_on > latest.created_on ? current : latest
+                );
+                const originalAddiction = latestData.effectiveness_addiction;
+                if (originalAddiction <= -6) {
+                    highAddictionPeople.push({
+                        name: latestData.name,
+                        employeeId: latestData.employee_id,
+                        addiction: Math.abs(originalAddiction).toFixed(2),
+                        originalValue: originalAddiction.toFixed(2),
+                        date: latestData.created_on.slice(0, 10)
+                    });
+                }
+            }
+        });
+
+        // Find people with current inactivity < 0
+        const inactivityPeople = [];
+        Object.keys(grouped).forEach(empId => {
+            const employeeData = Object.values(grouped[empId]);
+            if (employeeData.length > 0) {
+                const latestData = employeeData.reduce((latest, current) => 
+                    current.created_on > latest.created_on ? current : latest
+                );
+                const inactivity = latestData.effectiveness_inactivity;
+                if (inactivity < 0) {
+                    inactivityPeople.push({
+                        name: latestData.name,
+                        employeeId: latestData.employee_id,
+                        inactivity: inactivity.toFixed(2),
+                        date: latestData.created_on.slice(0, 10)
+                    });
+                }
+            }
+        });
+
+        // Populate Total Reductions Alert (using danger colors)
+        const totalReductionsDiv = document.getElementById('totalReductionsAlerts');
+        if (totalReductionPeople.length > 0) {
+            totalReductionsDiv.innerHTML = `
+                <ul class="list-unstyled mb-0" style="text-align: center;">
+                    ${totalReductionPeople.map(person => {
+                        const url = person.inactivity < 0 ? 
+                            `https://www.torn.com/profiles.php?XID=${person.employeeId}` : 
+                            `https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}`;
+                        return `<li class="mb-2"><strong><a href="${url}" target="_blank" style="color: #721c24; text-decoration: none;">${person.name}</a></strong> (${person.date})<br>
+                        <small style="color: #721c24;">Total: ${person.totalReduction} (Inactivity: ${person.inactivity}, Addiction: ${person.addiction})</small></li>`;
+                    }).join('')}
+                </ul>
+            `;
+        } else {
+            totalReductionsDiv.innerHTML = '<p style="color: #721c24; text-align: center;" class="mb-0">No employees with total reductions ≤ -8</p>';
+        }
+
+        // Populate Addiction Alert (using warning colors)
+        const addictionDiv = document.getElementById('addictionAlerts');
+        if (highAddictionPeople.length > 0) {
+            addictionDiv.innerHTML = `
+                <ul class="list-unstyled mb-0" style="text-align: center;">
+                    ${highAddictionPeople.map(person => 
+                        `<li class="mb-2"><strong><a href="https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}" target="_blank" style="color: #856404; text-decoration: none;">${person.name}</a></strong> (${person.date})<br>
+                        <small style="color: #856404;">Addiction: ${person.addiction} (original: ${person.originalValue})</small></li>`
+                    ).join('')}
+                </ul>
+            `;
+        } else {
+            addictionDiv.innerHTML = '<p style="color: #856404; text-align: center;" class="mb-0">No employees with addiction ≤ -6</p>';
+        }
+
+        // Populate Inactivity Alert (using info colors)
+        const inactivityDiv = document.getElementById('inactivityAlerts');
+        if (inactivityPeople.length > 0) {
+            inactivityDiv.innerHTML = `
+                <ul class="list-unstyled mb-0" style="text-align: center;">
+                    ${inactivityPeople.map(person => 
+                        `<li class="mb-2"><strong><a href="https://www.torn.com/profiles.php?XID=${person.employeeId}" target="_blank" style="color: #0c5460; text-decoration: none;">${person.name}</a></strong> (${person.date})<br>
+                        <small style="color: #0c5460;">Inactivity: ${person.inactivity}</small></li>`
+                    ).join('')}
+                </ul>
+            `;
+        } else {
+            inactivityDiv.innerHTML = '<p style="color: #0c5460; text-align: center;" class="mb-0">No employees with inactivity < 0</p>';
+        }
     }
     
     function createWorkstatChart(data) {
@@ -274,9 +430,10 @@
     if (highAddictionPeople.length > 0) {
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert alert-warning mt-3 mb-3';
+        alertDiv.style.textAlign = 'center';
         alertDiv.innerHTML = `
             <h5><i class="fas fa-exclamation-triangle"></i> High Addiction Alert (≤-8)</h5>
-            <ul class="mb-0">
+            <ul class="mb-0" style="list-style: none; padding: 0;">
                 ${highAddictionPeople.map(person => 
                     `<li><strong><a href="https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}" target="_blank" style="color: #856404; text-decoration: none;">${person.name}</a></strong>: ${person.addiction} (original: ${person.originalValue}) (as of ${person.date})</li>`
                 ).join('')}
@@ -501,54 +658,6 @@
                 }
             }
         });
-
-        // Find people with current addiction <= -8 (high addiction)
-        const highAddictionPeople = [];
-        Object.keys(grouped).forEach(empId => {
-            const employeeData = Object.values(grouped[empId]);
-            if (employeeData.length > 0) {
-                const latestData = employeeData.reduce((latest, current) => 
-                    current.created_on > latest.created_on ? current : latest
-                );
-                const originalAddiction = latestData.effectiveness_addiction;
-                const absoluteAddiction = Math.abs(originalAddiction);
-                if (originalAddiction <= -8) {
-                    highAddictionPeople.push({
-                        name: latestData.name,
-                        employeeId: latestData.employee_id,
-                        addiction: absoluteAddiction.toFixed(2),
-                        originalValue: originalAddiction.toFixed(2),
-                        date: latestData.created_on.slice(0, 10)
-                    });
-                }
-            }
-        });
-
-        // Remove existing alerts
-        const existingAlerts = document.querySelectorAll('.alert-warning');
-        existingAlerts.forEach(alert => {
-            if (alert.innerHTML.includes('High Addiction Alert')) {
-                alert.remove();
-            }
-        });
-
-        // Display high addiction alert if there are any
-        if (highAddictionPeople.length > 0) {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-warning mt-3 mb-3';
-            alertDiv.innerHTML = `
-                <h5><i class="fas fa-exclamation-triangle"></i> High Addiction Alert (≤-8)</h5>
-                <ul class="mb-0">
-                    ${highAddictionPeople.map(person => 
-                        `<li><strong><a href="https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}" target="_blank" style="color: #856404; text-decoration: none;">${person.name}</a></strong>: ${person.addiction} (original: ${person.originalValue}) (as of ${person.date})</li>`
-                    ).join('')}
-                </ul>
-            `;
-            const addictionChartElement = document.getElementById('addictionChart');
-            if (addictionChartElement) {
-                addictionChartElement.parentNode.insertBefore(alertDiv, addictionChartElement);
-            }
-        }
     }
     
     function createRollingAverageChart(data, startDate, endDate) {
@@ -683,4 +792,4 @@
         }
     });
 </script>
-{% endblock %}
+{% endblock content %}
