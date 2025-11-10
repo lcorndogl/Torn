@@ -39,7 +39,7 @@
     <div class="row d-flex">
         <div class="col-md-4 d-flex">
             <div class="alert alert-danger flex-fill text-center">
-                <h5 class="mb-3"><i class="fas fa-exclamation-triangle"></i> Total Reductions (Inactivity + Addiction ≤ -8)</h5>
+                <h5 class="mb-3"><i class="fas fa-exclamation-triangle"></i> Total Reductions Summary</h5>
                 <div id="totalReductionsAlerts">
                     <!-- Total reductions alerts will be inserted here -->
                 </div>
@@ -176,7 +176,7 @@
                     current.created_on > latest.created_on ? current : latest
                 );
                 const totalReduction = latestData.effectiveness_inactivity + latestData.effectiveness_addiction;
-                if (totalReduction <= -8) {
+                if (latestData.effectiveness_addiction <= -8 || latestData.effectiveness_inactivity < 0) {
                     totalReductionPeople.push({
                         name: latestData.name,
                         employeeId: latestData.employee_id,
@@ -235,13 +235,10 @@
         if (totalReductionPeople.length > 0) {
             totalReductionsDiv.innerHTML = `
                 <ul class="list-unstyled mb-0" style="text-align: center;">
-                    ${totalReductionPeople.map(person => {
-                        const url = person.inactivity < 0 ? 
-                            `https://www.torn.com/profiles.php?XID=${person.employeeId}` : 
-                            `https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}`;
-                        return `<li class="mb-2"><strong><a href="${url}" target="_blank" style="color: #721c24; text-decoration: none;">${person.name}</a></strong> (${person.date})<br>
-                        <small style="color: #721c24;">Total: ${person.totalReduction} (Inactivity: ${person.inactivity}, Addiction: ${person.addiction})</small></li>`;
-                    }).join('')}
+                    ${totalReductionPeople.map(person => 
+                        `<li class="mb-2"><strong><a href="https://www.torn.com/profiles.php?XID=${person.employeeId}" target="_blank" style="color: #721c24; text-decoration: none;">${person.name}</a></strong> (${person.date})<br>
+                        <small style="color: #721c24;">Total: ${person.totalReduction} (Inactivity: ${person.inactivity}, Addiction: ${person.addiction})</small></li>`
+                    ).join('')}
                 </ul>
             `;
         } else {
