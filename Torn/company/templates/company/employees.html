@@ -204,12 +204,35 @@
                 if (latestData.is_current_member) {
                     const originalAddiction = latestData.effectiveness_addiction;
                     if (originalAddiction <= -6) {
+                        // Collect Switzerland status data for this person
+                        const switzerlandData = {};
+                        if (latestData.switzerland_status) {
+                            if (latestData.switzerland_to) {
+                                switzerlandData.to = new Date(latestData.switzerland_to);
+                            }
+                            if (latestData.switzerland_in) {
+                                // Handle both single timestamp and range format
+                                if (Array.isArray(latestData.switzerland_in) && latestData.switzerland_in.length === 2) {
+                                    // Range format: [earliest, latest]
+                                    switzerlandData.inEarliest = new Date(latestData.switzerland_in[0]);
+                                    switzerlandData.inLatest = new Date(latestData.switzerland_in[1]);
+                                } else {
+                                    // Single timestamp format
+                                    switzerlandData.in = new Date(latestData.switzerland_in);
+                                }
+                            }
+                            if (latestData.switzerland_from) {
+                                switzerlandData.from = new Date(latestData.switzerland_from);
+                            }
+                        }
+                        
                         highAddictionPeople.push({
                             name: latestData.name,
                             employeeId: latestData.employee_id,
                             addiction: Math.abs(originalAddiction).toFixed(2),
                             originalValue: originalAddiction.toFixed(2),
-                            date: latestData.created_on.slice(0, 10)
+                            date: latestData.created_on.slice(0, 10),
+                            switzerland: switzerlandData
                         });
                     }
                 }
@@ -321,10 +344,48 @@
         if (highAddictionPeople.length > 0) {
             addictionDiv.innerHTML = `
                 <ul class="list-unstyled mb-0" style="text-align: center;">
-                    ${highAddictionPeople.map(person => 
-                        `<li class="mb-2"><strong><a href="https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}" target="_blank" style="color: #856404; text-decoration: none;">${person.name}</a></strong> (${person.date})<br>
-                        <small style="color: #856404;">Addiction: ${person.addiction} (original: ${person.originalValue})</small></li>`
-                    ).join('')}
+                    ${highAddictionPeople.map(person => {
+                        let switzerlandInfo = '';
+                        if (Object.keys(person.switzerland).length > 0) {
+                            const switzerlandLines = [];
+                            if (person.switzerland.to) {
+                                switzerlandLines.push(`To Switzerland: ${person.switzerland.to.toLocaleString()}`);
+                            }
+                            if (person.switzerland.inEarliest && person.switzerland.inLatest) {
+                                // Range format
+                                if (person.switzerland.inEarliest.getTime() === person.switzerland.inLatest.getTime()) {
+                                    // Same timestamp, just show once
+                                    switzerlandLines.push(`In Switzerland: ${person.switzerland.inEarliest.toLocaleString()}`);
+                                } else {
+                                    // Check if they're on the same date
+                                    const earliestDate = person.switzerland.inEarliest.toDateString();
+                                    const latestDate = person.switzerland.inLatest.toDateString();
+                                    
+                                    if (earliestDate === latestDate) {
+                                        // Same date, show date+time for earliest, just time for latest
+                                        const earliestDateTime = person.switzerland.inEarliest.toLocaleString();
+                                        const latestTime = person.switzerland.inLatest.toLocaleTimeString();
+                                        switzerlandLines.push(`In Switzerland: ${earliestDateTime} - ${latestTime}`);
+                                    } else {
+                                        // Different dates, show full timestamps
+                                        switzerlandLines.push(`In Switzerland: ${person.switzerland.inEarliest.toLocaleString()} - ${person.switzerland.inLatest.toLocaleString()}`);
+                                    }
+                                }
+                            } else if (person.switzerland.in) {
+                                // Single timestamp format
+                                switzerlandLines.push(`In Switzerland: ${person.switzerland.in.toLocaleString()}`);
+                            }
+                            if (person.switzerland.from) {
+                                switzerlandLines.push(`From Switzerland: ${person.switzerland.from.toLocaleString()}`);
+                            }
+                            if (switzerlandLines.length > 0) {
+                                switzerlandInfo = `<br><small style="color: #856404;">${switzerlandLines.join('<br>')}</small>`;
+                            }
+                        }
+                        
+                        return `<li class="mb-2"><strong><a href="https://www.torn.com/messages.php#/p=compose&XID=${person.employeeId}" target="_blank" style="color: #856404; text-decoration: none;">${person.name}</a></strong> (${person.date})<br>
+                        <small style="color: #856404;">Addiction: ${person.addiction} (original: ${person.originalValue})</small>${switzerlandInfo}</li>`;
+                    }).join('')}
                 </ul>
             `;
         } else {
