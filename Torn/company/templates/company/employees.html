@@ -55,7 +55,7 @@
         </div>
         <div class="col-md-4 d-flex">
             <div class="alert alert-info flex-fill text-center">
-                <h5 class="mb-3"><i class="fas fa-info-circle"></i> Inactivity Issues (< 0)</h5>
+                <h5 class="mb-3"><i class="fas fa-info-circle"></i> Current Inactivity Risks</h5>
                 <div id="inactivityAlerts">
                     <!-- Inactivity alerts will be inserted here -->
                 </div>
@@ -167,7 +167,7 @@
             }
         });
 
-        // Find people with current total reductions <= -8
+        // Find people with current total reductions <= -8 (only current members)
         const totalReductionPeople = [];
         Object.keys(grouped).forEach(empId => {
             const employeeData = Object.values(grouped[empId]);
@@ -175,21 +175,24 @@
                 const latestData = employeeData.reduce((latest, current) => 
                     current.created_on > latest.created_on ? current : latest
                 );
-                const totalReduction = latestData.effectiveness_inactivity + latestData.effectiveness_addiction;
-                if (latestData.effectiveness_addiction <= -8 || latestData.effectiveness_inactivity < 0) {
-                    totalReductionPeople.push({
-                        name: latestData.name,
-                        employeeId: latestData.employee_id,
-                        totalReduction: totalReduction.toFixed(2),
-                        inactivity: latestData.effectiveness_inactivity.toFixed(2),
-                        addiction: latestData.effectiveness_addiction.toFixed(2),
-                        date: latestData.created_on.slice(0, 10)
-                    });
+                // Only include current members for alerts
+                if (latestData.is_current_member) {
+                    const totalReduction = latestData.effectiveness_inactivity + latestData.effectiveness_addiction;
+                    if (latestData.effectiveness_addiction <= -8 || latestData.effectiveness_inactivity < 0) {
+                        totalReductionPeople.push({
+                            name: latestData.name,
+                            employeeId: latestData.employee_id,
+                            totalReduction: totalReduction.toFixed(2),
+                            inactivity: latestData.effectiveness_inactivity.toFixed(2),
+                            addiction: latestData.effectiveness_addiction.toFixed(2),
+                            date: latestData.created_on.slice(0, 10)
+                        });
+                    }
                 }
             }
         });
 
-        // Find people with current addiction <= -6
+        // Find people with current addiction <= -6 (only current members)
         const highAddictionPeople = [];
         Object.keys(grouped).forEach(empId => {
             const employeeData = Object.values(grouped[empId]);
@@ -197,35 +200,103 @@
                 const latestData = employeeData.reduce((latest, current) => 
                     current.created_on > latest.created_on ? current : latest
                 );
-                const originalAddiction = latestData.effectiveness_addiction;
-                if (originalAddiction <= -6) {
-                    highAddictionPeople.push({
-                        name: latestData.name,
-                        employeeId: latestData.employee_id,
-                        addiction: Math.abs(originalAddiction).toFixed(2),
-                        originalValue: originalAddiction.toFixed(2),
-                        date: latestData.created_on.slice(0, 10)
-                    });
+                // Only include current members for alerts
+                if (latestData.is_current_member) {
+                    const originalAddiction = latestData.effectiveness_addiction;
+                    if (originalAddiction <= -6) {
+                        highAddictionPeople.push({
+                            name: latestData.name,
+                            employeeId: latestData.employee_id,
+                            addiction: Math.abs(originalAddiction).toFixed(2),
+                            originalValue: originalAddiction.toFixed(2),
+                            date: latestData.created_on.slice(0, 10)
+                        });
+                    }
                 }
             }
         });
 
-        // Find people with current inactivity < 0
+        // Find people with current inactivity < 0 OR last action before 18:00 the previous day (only current members)
+        // Note: Now filtering to only include current members while preserving historical data for charts
         const inactivityPeople = [];
+        const currentTime = new Date(); // This will be in local time
+        
+        // Convert to GMT for consistent timezone handling
+        const currentTimeGMT = new Date(currentTime.getTime() + (currentTime.getTimezoneOffset() * 60000));
+        const currentHourGMT = currentTimeGMT.getUTCHours();
+        const currentMinuteGMT = currentTimeGMT.getUTCMinutes();
+        
+        // Check if current time is 18:16 GMT or later (since data script runs at xx:15 and xx:22)
+        const isAfter1816GMT = (currentHourGMT > 18) || (currentHourGMT === 18 && currentMinuteGMT >= 16);
+        
+        // Determine the cutoff time based on current GMT time (but always use 18:00 for comparison)
+        let cutoffTime;
+        if (!isAfter1816GMT) {
+            // If current GMT time is before 18:16, check for last action before 18:00 the day before (GMT)
+            cutoffTime = new Date(currentTimeGMT);
+            cutoffTime.setUTCDate(cutoffTime.getUTCDate() - 1);
+            cutoffTime.setUTCHours(18, 0, 0, 0);
+        } else {
+            // If current GMT time is 18:16 or later, check for last action before 18:00 on current day (GMT)
+            cutoffTime = new Date(currentTimeGMT);
+            cutoffTime.setUTCHours(18, 0, 0, 0);
+        }
+        
+        // Check only current members for inactivity alerts
         Object.keys(grouped).forEach(empId => {
             const employeeData = Object.values(grouped[empId]);
             if (employeeData.length > 0) {
                 const latestData = employeeData.reduce((latest, current) => 
                     current.created_on > latest.created_on ? current : latest
                 );
-                const inactivity = latestData.effectiveness_inactivity;
-                if (inactivity < 0) {
-                    inactivityPeople.push({
-                        name: latestData.name,
-                        employeeId: latestData.employee_id,
-                        inactivity: inactivity.toFixed(2),
-                        date: latestData.created_on.slice(0, 10)
-                    });
+                
+                // Only include current members for alerts
+                if (latestData.is_current_member) {
+                    const inactivity = latestData.effectiveness_inactivity;
+                    
+                    let shouldInclude = false;
+                    let reason = '';
+                    
+                    // Check if user has inactivity issues OR last action was before the cutoff time
+                    if (inactivity < 0) {
+                        shouldInclude = true;
+                        reason = 'Inactivity < 0';
+                    }
+                    
+                    if (latestData.last_action_timestamp) {
+                        const lastActionTime = new Date(latestData.last_action_timestamp);
+                        // Convert last action time to GMT for comparison
+                        const lastActionTimeGMT = new Date(lastActionTime.getTime() + (lastActionTime.getTimezoneOffset() * 60000));
+                        
+                        if (lastActionTimeGMT < cutoffTime) {
+                            shouldInclude = true;
+                            const timeCondition = !isAfter1816GMT ? 'before 18:00 yesterday (GMT)' : 'before 18:00 today (GMT)';
+                            if (reason) {
+                                reason += ` & ${timeCondition}`;
+                            } else {
+                                reason = `Last action ${timeCondition}`;
+                            }
+                        }
+                    }
+                    
+                    if (shouldInclude) {
+                        // Calculate hours since last action (using GMT)
+                        const lastActionTime = latestData.last_action_timestamp ? new Date(latestData.last_action_timestamp) : null;
+                        const lastActionTimeGMT = lastActionTime ? new Date(lastActionTime.getTime() + (lastActionTime.getTimezoneOffset() * 60000)) : null;
+                        const hoursSinceLastAction = lastActionTimeGMT ? Math.floor((currentTimeGMT - lastActionTimeGMT) / (1000 * 60 * 60)) : 'Unknown';
+                        
+                        inactivityPeople.push({
+                            name: latestData.name,
+                            employeeId: latestData.employee_id,
+                            inactivity: inactivity.toFixed(2),
+                            date: latestData.created_on.slice(0, 10),
+                            lastActionTime: lastActionTime ? lastActionTime.toLocaleString() : 'No timestamp',
+                            hoursSinceAction: hoursSinceLastAction,
+                            reason: reason,
+                            currentTimeGMT: currentTimeGMT.toISOString(),
+                            cutoffTimeGMT: cutoffTime.toISOString()
+                        });
+                    }
                 }
             }
         });
@@ -263,23 +334,97 @@
         // Populate Inactivity Alert (using info colors)
         const inactivityDiv = document.getElementById('inactivityAlerts');
         if (inactivityPeople.length > 0) {
-            inactivityDiv.innerHTML = `
-                <ul class="list-unstyled mb-0" style="text-align: center;">
-                    ${inactivityPeople.map(person => 
-                        `<li class="mb-2"><strong><a href="https://www.torn.com/profiles.php?XID=${person.employeeId}" target="_blank" style="color: #0c5460; text-decoration: none;">${person.name}</a></strong> (${person.date})<br>
-                        <small style="color: #0c5460;">Inactivity: ${person.inactivity}</small></li>`
-                    ).join('')}
-                </ul>
-            `;
+            // Check if we're after 18:16 GMT to determine if we should limit display
+            const currentTime = new Date();
+            const currentTimeGMT = new Date(currentTime.getTime() + (currentTime.getTimezoneOffset() * 60000));
+            const currentHourGMT = currentTimeGMT.getUTCHours();
+            const currentMinuteGMT = currentTimeGMT.getUTCMinutes();
+            const isAfter1816GMT = (currentHourGMT > 18) || (currentHourGMT === 18 && currentMinuteGMT >= 16);
+            
+            if (isAfter1816GMT && inactivityPeople.length > 2) {
+                // Separate people with inactivity < 0 from those with only time issues
+                const inactivityIssues = inactivityPeople.filter(person => parseFloat(person.inactivity) < 0);
+                const timeOnlyIssues = inactivityPeople.filter(person => parseFloat(person.inactivity) >= 0);
+                
+                // Sort time-only issues by hours since last action (highest first)
+                const sortedTimeIssues = timeOnlyIssues.sort((a, b) => {
+                    const hoursA = typeof a.hoursSinceAction === 'number' ? a.hoursSinceAction : 9999;
+                    const hoursB = typeof b.hoursSinceAction === 'number' ? b.hoursSinceAction : 9999;
+                    return hoursB - hoursA;
+                });
+                
+                // Always show all inactivity issues + top 2 time-only issues
+                const alwaysShow = [...inactivityIssues, ...sortedTimeIssues.slice(0, 2)];
+                const remaining = sortedTimeIssues.slice(2);
+                
+                if (remaining.length > 0) {
+                    inactivityDiv.innerHTML = `
+                        <ul class="list-unstyled mb-0" style="text-align: center;" id="topList">
+                            ${alwaysShow.map(person => 
+                                `<li class="mb-2"><strong><a href="https://www.torn.com/profiles.php?XID=${person.employeeId}" target="_blank" style="color: #0c5460; text-decoration: none;">${person.name}</a></strong> (${person.date})<br>
+                                <small style="color: #0c5460;">Inactivity: ${person.inactivity}<br>Last Action: ${person.lastActionTime}<br>Hours Since: ${person.hoursSinceAction}<br>Reason: ${person.reason}</small></li>`
+                            ).join('')}
+                        </ul>
+                        <div class="mt-2">
+                            <button id="expandInactivityBtn" class="btn btn-sm btn-outline-info" onclick="toggleInactivityExpand()">
+                                Show ${remaining.length} more members
+                            </button>
+                        </div>
+                        <ul class="list-unstyled mb-0" style="text-align: center; display: none;" id="remainingList">
+                            ${remaining.map(person => 
+                                `<li class="mb-2"><strong><a href="https://www.torn.com/profiles.php?XID=${person.employeeId}" target="_blank" style="color: #0c5460; text-decoration: none;">${person.name}</a></strong> (${person.date})<br>
+                                <small style="color: #0c5460;">Inactivity: ${person.inactivity}<br>Last Action: ${person.lastActionTime}<br>Hours Since: ${person.hoursSinceAction}<br>Reason: ${person.reason}</small></li>`
+                            ).join('')}
+                        </ul>
+                    `;
+                } else {
+                    // Show all members (no remaining to hide)
+                    inactivityDiv.innerHTML = `
+                        <ul class="list-unstyled mb-0" style="text-align: center;">
+                            ${alwaysShow.map(person => 
+                                `<li class="mb-2"><strong><a href="https://www.torn.com/profiles.php?XID=${person.employeeId}" target="_blank" style="color: #0c5460; text-decoration: none;">${person.name}</a></strong> (${person.date})<br>
+                                <small style="color: #0c5460;">Inactivity: ${person.inactivity}<br>Last Action: ${person.lastActionTime}<br>Hours Since: ${person.hoursSinceAction}<br>Reason: ${person.reason}</small></li>`
+                            ).join('')}
+                        </ul>
+                    `;
+                }
+            } else {
+                // Show all members (either before 18:16 GMT or 2 or fewer members)
+                inactivityDiv.innerHTML = `
+                    <ul class="list-unstyled mb-0" style="text-align: center;">
+                        ${inactivityPeople.map(person => 
+                            `<li class="mb-2"><strong><a href="https://www.torn.com/profiles.php?XID=${person.employeeId}" target="_blank" style="color: #0c5460; text-decoration: none;">${person.name}</a></strong> (${person.date})<br>
+                            <small style="color: #0c5460;">Inactivity: ${person.inactivity}<br>Last Action: ${person.lastActionTime}<br>Hours Since: ${person.hoursSinceAction}<br>Reason: ${person.reason}</small></li>`
+                        ).join('')}
+                    </ul>
+                `;
+            }
         } else {
-            inactivityDiv.innerHTML = '<p style="color: #0c5460; text-align: center;" class="mb-0">No employees with inactivity < 0</p>';
+            const currentTime = new Date();
+            const currentTimeGMT = new Date(currentTime.getTime() + (currentTime.getTimezoneOffset() * 60000));
+            const currentHourGMT = currentTimeGMT.getUTCHours();
+            const currentMinuteGMT = currentTimeGMT.getUTCMinutes();
+            const isAfter1816GMT = (currentHourGMT > 18) || (currentHourGMT === 18 && currentMinuteGMT >= 16);
+            const timeCondition = !isAfter1816GMT ? 'before 18:00 yesterday (GMT)' : 'before 18:00 today (GMT)';
+            inactivityDiv.innerHTML = `<p style="color: #0c5460; text-align: center;" class="mb-0">No current members with inactivity < 0 or last action ${timeCondition}</p>`;
         }
     }
     
     function createWorkstatChart(data) {
+        // First, identify which employees are current members
+        const currentMemberIds = new Set();
+        data.forEach(row => {
+            if (row.is_current_member) {
+                currentMemberIds.add(row.employee_id);
+            }
+        });
+        
+        // Filter data to only include current members
+        const currentMemberData = data.filter(row => currentMemberIds.has(row.employee_id));
+        
         // Group by employee and by day, keeping only the latest per day
         const grouped = {};
-        data.forEach(row => {
+        currentMemberData.forEach(row => {
             const empId = row.employee_id;
             const date = row.created_on.slice(0, 10);
             if (!grouped[empId]) grouped[empId] = {};
@@ -556,9 +701,20 @@
     // END OLD CODE COMMENT */
     
     function createAddictionChart(data) {
+        // First, identify which employees are current members
+        const currentMemberIds = new Set();
+        data.forEach(row => {
+            if (row.is_current_member) {
+                currentMemberIds.add(row.employee_id);
+            }
+        });
+        
+        // Filter data to only include current members
+        const currentMemberData = data.filter(row => currentMemberIds.has(row.employee_id));
+        
         // Group by employee and by day, keeping only the latest per day
         const grouped = {};
-        data.forEach(row => {
+        currentMemberData.forEach(row => {
             const empId = row.employee_id;
             const date = row.created_on.slice(0, 10);
             if (!grouped[empId]) grouped[empId] = {};
@@ -658,9 +814,20 @@
     }
     
     function createRollingAverageChart(data, startDate, endDate) {
+        // First, identify which employees are current members
+        const currentMemberIds = new Set();
+        data.forEach(row => {
+            if (row.is_current_member) {
+                currentMemberIds.add(row.employee_id);
+            }
+        });
+        
+        // Filter data to only include current members
+        const currentMemberData = data.filter(row => currentMemberIds.has(row.employee_id));
+        
         // Group data for rolling average calculation
         const rollingAvgGrouped = {};
-        data.forEach(row => {
+        currentMemberData.forEach(row => {
             const empId = row.employee_id;
             const date = row.created_on.slice(0, 10);
             if (!rollingAvgGrouped[empId]) rollingAvgGrouped[empId] = {};
@@ -750,6 +917,25 @@
                 }
             }
         });
+    }
+    
+    // Function to toggle the expanded view of inactivity members
+    function toggleInactivityExpand() {
+        const remainingList = document.getElementById('remainingList');
+        const expandBtn = document.getElementById('expandInactivityBtn');
+        
+        if (remainingList.style.display === 'none') {
+            remainingList.style.display = 'block';
+            expandBtn.textContent = 'Show fewer members';
+            expandBtn.classList.remove('btn-outline-info');
+            expandBtn.classList.add('btn-info');
+        } else {
+            remainingList.style.display = 'none';
+            const hiddenCount = remainingList.children.length;
+            expandBtn.textContent = `Show ${hiddenCount} more members`;
+            expandBtn.classList.remove('btn-info');
+            expandBtn.classList.add('btn-outline-info');
+        }
     }
     
     // Event listeners and initialization
