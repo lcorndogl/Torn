@@ -137,16 +137,19 @@
 
         // Prepare datasets for Chart.js (Workstats)
         const datasets = Object.keys(grouped).map((empId, idx) => {
-            const data = Object.values(grouped[empId]).map(row => ({
+            const dataPoints = Object.values(grouped[empId]).map(row => ({
                 x: row.created_on.slice(0, 10),
                 y: row.effectiveness_working_stats,
                 manual: row.manual_labour,
                 intelligence: row.intelligence,
                 endurance: row.endurance
             }));
+            // Sort data points by date to ensure proper line connections
+            dataPoints.sort((a, b) => a.x.localeCompare(b.x));
+            
             return {
                 label: Object.values(grouped[empId])[0].name,
-                data: data,
+                data: dataPoints,
                 showLine: true,
                 borderColor: colors[idx % colors.length],
                 backgroundColor: colors[idx % colors.length],
@@ -197,16 +200,19 @@
 
     // Prepare datasets for Addiction Chart (same time period as workstats)
     const addictionDatasets = Object.keys(grouped).map((empId, idx) => {
-        const data = Object.values(grouped[empId]).map(row => ({
+        const dataPoints = Object.values(grouped[empId]).map(row => ({
             x: row.created_on.slice(0, 10),
             y: Math.abs(row.effectiveness_addiction), // Make addiction positive
             manual: row.manual_labour,
             intelligence: row.intelligence,
             endurance: row.endurance
         }));
+        // Sort data points by date to ensure proper line connections
+        dataPoints.sort((a, b) => a.x.localeCompare(b.x));
+        
         return {
             label: Object.values(grouped[empId])[0].name,
-            data: data,
+            data: dataPoints,
             showLine: true,
             borderColor: colors[idx % colors.length],
             backgroundColor: colors[idx % colors.length],
@@ -464,6 +470,9 @@
                 intelligence: row.intelligence,
                 endurance: row.endurance
             }));
+            // Sort data points by date to ensure proper line connections
+            chartData.sort((a, b) => a.x.localeCompare(b.x));
+            
             return {
                 label: Object.values(grouped[empId])[0].name,
                 data: chartData,
@@ -642,7 +651,7 @@
             
             return {
                 label: employeeName,
-                data: rollingAverages,
+                data: rollingAverages.sort((a, b) => a.x.localeCompare(b.x)), // Sort by date
                 borderColor: colors[idx % colors.length],
                 backgroundColor: colors[idx % colors.length],
                 showLine: true,
@@ -725,4 +734,4 @@
         }
     });
 </script>
-{% endblock %}
+{% endblock content %}
