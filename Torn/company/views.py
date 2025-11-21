@@ -23,60 +23,27 @@ def eternal_workstats(request):
     })
 
 def employees(request):
-    # Get date range from request parameters, default to last 30 days
-    from django.db.models import Max, Min
-    from datetime import timedelta
-    
-    # Get date range parameters from URL or use defaults
-    end_date_str = request.GET.get('end_date')
-    start_date_str = request.GET.get('start_date')
-    
-    # Set default date range to last 7 days (since most data is recent)
-    now = timezone.now()
-    if end_date_str:
-        try:
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').replace(tzinfo=timezone.utc)
-            # Set to end of day
-            end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
-        except ValueError:
-            end_date = now
-    else:
-        end_date = now
-    
-    if start_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').replace(tzinfo=timezone.utc)
-            # Set to start of day
-            start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
-        except ValueError:
-            start_date = now - timedelta(days=7)
-    else:
-        start_date = now - timedelta(days=7)
-    
-    # Filter employees to only show those from company ID 110380, exclude total effectiveness of 0, 
-    # and limit to the specified date range
-    employees = Employee.objects.filter(
-        company__company_id=110380, 
-        effectiveness_total__gt=0,
-        created_on__gte=start_date,
-        created_on__lte=end_date
-    ).order_by('created_on')
+    # Filter employees to only show those from company ID 110380, exclude total effectiveness of 0, ordered by created_on
+    employees = Employee.objects.filter(company__company_id=110380, effectiveness_total__gt=0).order_by('created_on')
     
     # Get the most recent created_on date to identify current members
-    # We need to check the actual most recent date from all data, not just filtered data
-    all_employees = Employee.objects.filter(company__company_id=110380, effectiveness_total__gt=0)
-    most_recent_date = all_employees.aggregate(Max('created_on'))['created_on__max']
+    from django.db.models import Max, Min
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    most_recent_date = employees.aggregate(Max('created_on'))['created_on__max']
     
     # Calculate Switzerland status data for the last 24 hours
+    now = timezone.now()
     twenty_four_hours_ago = now - timedelta(hours=24)
     
-    # Get current member IDs (from the most recent date, not filtered date range)
-    current_member_ids = all_employees.filter(created_on=most_recent_date).values_list('employee_id', flat=True).distinct()
+    # Get Switzerland status data for current members only
+    current_member_ids = employees.filter(created_on=most_recent_date).values_list('employee_id', flat=True).distinct()
     
     # First, identify who has current addictions (≤ -6)
     addicted_member_ids = []
     for emp_id in current_member_ids:
-        latest_record = all_employees.filter(employee_id=emp_id, created_on=most_recent_date).first()
+        latest_record = employees.filter(employee_id=emp_id, created_on=most_recent_date).first()
         if latest_record and latest_record.effectiveness_addiction <= -6:
             addicted_member_ids.append(emp_id)
     
@@ -194,15 +161,7 @@ def employees(request):
             record['switzerland_from'] = None
     
     employee_data_json = mark_safe(json.dumps(employee_data, default=str))
-    
-    # Format dates for template
-    start_date_formatted = start_date.strftime('%Y-%m-%d')
-    end_date_formatted = end_date.strftime('%Y-%m-%d')
-    
     return render(request, 'company/employees.html', {
         'employees': employees,
-        'employee_data_json': employee_data_json,
-        'start_date': start_date_formatted,
-        'end_date': end_date_formatted,
-        'total_records': employees.count()
+        'employee_data_json': employee_data_json
     })

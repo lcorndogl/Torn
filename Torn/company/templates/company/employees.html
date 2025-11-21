@@ -27,13 +27,6 @@
                             <button id="resetRange" class="btn btn-secondary">Reset</button>
                         </div>
                     </div>
-                    {% if total_records %}
-                    <div class="row mt-2">
-                        <div class="col-12 text-center">
-                            <small class="text-muted">Loaded {{ total_records }} records for the selected date range</small>
-                        </div>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -92,24 +85,13 @@
     // Chart instances to destroy on update
     let workstatChart, addictionChart, rollingAvgChart;
     
-    // Initialize date inputs with values from server (or defaults)
+    // Initialize date inputs with default range (last 30 days)
     function initializeDateInputs() {
-        // Use server-provided dates if available, otherwise use defaults
-        const serverStartDate = '{{ start_date|default:"" }}';
-        const serverEndDate = '{{ end_date|default:"" }}';
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         
-        if (serverStartDate) {
-            document.getElementById('startDate').value = serverStartDate;
-        } else {
-            const sevenDaysAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
-            document.getElementById('startDate').value = sevenDaysAgo.toISOString().slice(0, 10);
-        }
-        
-        if (serverEndDate) {
-            document.getElementById('endDate').value = serverEndDate;
-        } else {
-            document.getElementById('endDate').value = new Date().toISOString().slice(0, 10);
-        }
+        document.getElementById('endDate').value = now.toISOString().slice(0, 10);
+        document.getElementById('startDate').value = thirtyDaysAgo.toISOString().slice(0, 10);
     }
     
     // Filter data based on selected date range
@@ -120,9 +102,9 @@
         });
     }
     
-    // Main function to reload page with new date range
-    function updateChartsWithNewData() {
-        console.log('updateChartsWithNewData function called');
+    // Main function to create all charts
+    function createCharts() {
+        console.log('createCharts function called');
         
         // Get selected date range
         const startDate = document.getElementById('startDate').value;
@@ -140,39 +122,36 @@
             return;
         }
         
-        // Show loading indicator
-        const updateButton = document.getElementById('updateCharts');
-        if (updateButton) {
-            updateButton.textContent = 'Loading...';
-            updateButton.disabled = true;
-        }
-        
-        // Reload page with new parameters
-        const params = new URLSearchParams();
-        params.append('start_date', startDate);
-        params.append('end_date', endDate);
-        
-        window.location.href = window.location.pathname + '?' + params.toString();
-    }
-    
-    // Keep the original createCharts function for initial load (no filtering needed now)
-    function createCharts() {
-        console.log('createCharts function called for initial load');
-        
-        const filteredData = rawData; // No filtering needed since server already filtered
-        console.log('Data length:', filteredData.length);
+        // Filter data for selected range
+        const filteredData = filterDataByDateRange(rawData, startDate, endDate);
+        console.log('Filtered data length:', filteredData.length);
         
         if (filteredData.length === 0) {
             alert('No data available for the selected date range');
             return;
         }
         
-        // Create charts and populate alerts with data
-        console.log('Creating charts and populating alerts...');
+        // Destroy existing charts
+        console.log('Destroying existing charts...');
+        if (workstatChart) {
+            workstatChart.destroy();
+            console.log('Workstat chart destroyed');
+        }
+        if (addictionChart) {
+            addictionChart.destroy();
+            console.log('Addiction chart destroyed');
+        }
+        if (rollingAvgChart) {
+            rollingAvgChart.destroy();
+            console.log('Rolling avg chart destroyed');
+        }
+        
+        // Create charts and populate alerts with filtered data
+        console.log('Creating new charts and populating alerts...');
         populateStatReductionAlerts(filteredData);
         createWorkstatChart(filteredData);
         createAddictionChart(filteredData);
-        createRollingAverageChart(filteredData);
+        createRollingAverageChart(filteredData, startDate, endDate);
         console.log('Charts creation complete');
     }
     
@@ -901,10 +880,7 @@
         });
     }
     
-    function createRollingAverageChart(data) {
-        // Get date range from the date inputs for rolling average calculation
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
+    function createRollingAverageChart(data, startDate, endDate) {
         // First, identify which employees are current members
         const currentMemberIds = new Set();
         data.forEach(row => {
@@ -1046,7 +1022,7 @@
         if (updateButton) {
             updateButton.addEventListener('click', function() {
                 console.log('Update Charts button clicked!');
-                updateChartsWithNewData(); // Use the new function that reloads the page
+                createCharts();
             });
             console.log('Update button event listener added');
         } else {
@@ -1057,8 +1033,8 @@
         if (resetButton) {
             resetButton.addEventListener('click', function() {
                 console.log('Reset Range button clicked!');
-                // Reload page without parameters to get default range
-                window.location.href = window.location.pathname;
+                initializeDateInputs();
+                createCharts();
             });
             console.log('Reset button event listener added');
         } else {
