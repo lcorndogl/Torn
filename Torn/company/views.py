@@ -23,33 +23,43 @@ def eternal_workstats(request):
     })
 
 def employees(request):
-    # Filter employees to only show those from company ID 110380, exclude total effectiveness of 0, ordered by created_on
-    employees = Employee.objects.filter(company__company_id=110380, effectiveness_total__gt=0).order_by('created_on')
-    
-    # Get the most recent created_on date to identify current members
+    # First, get current members and identify who has current addictions (≤ -6)
     from django.db.models import Max, Min
     from django.utils import timezone
     from datetime import timedelta
     
-    most_recent_date = employees.aggregate(Max('created_on'))['created_on__max']
+    # Get all employees to find current members first
+    all_employees = Employee.objects.filter(company__company_id=110380, effectiveness_total__gt=0)
+    most_recent_date = all_employees.aggregate(Max('created_on'))['created_on__max']
+    
+    # Get current member IDs and their latest records for alerts
+    current_members = all_employees.filter(created_on=most_recent_date)
+    current_member_ids = list(current_members.values_list('employee_id', flat=True))
+    
+    # Get current addicted member IDs for historical chart data
+    current_addicted_member_ids = []
+    for record in current_members:
+        if record.effectiveness_addiction <= -6:
+            current_addicted_member_ids.append(record.employee_id)
+    
+    # For charts: Only pull historical data for members with current addiction issues
+    # For alerts: We'll add current member data separately
+    employees = Employee.objects.filter(
+        company__company_id=110380, 
+        effectiveness_total__gt=0,
+        employee_id__in=current_addicted_member_ids
+    ).order_by('created_on')
     
     # Calculate Switzerland status data for the last 24 hours
     now = timezone.now()
     twenty_four_hours_ago = now - timedelta(hours=24)
     
-    # Get Switzerland status data for current members only
-    current_member_ids = employees.filter(created_on=most_recent_date).values_list('employee_id', flat=True).distinct()
+    # Get Switzerland status data for current addicted members only
+    addicted_member_ids = current_addicted_member_ids
     
-    # First, identify who has current addictions (≤ -6)
-    addicted_member_ids = []
-    for emp_id in current_member_ids:
-        latest_record = employees.filter(employee_id=emp_id, created_on=most_recent_date).first()
-        if latest_record and latest_record.effectiveness_addiction <= -6:
-            addicted_member_ids.append(emp_id)
-    
-    # Only get Switzerland data for addicted members
+    # Only get Switzerland data for addicted members (which is all current members in our filtered dataset)
     switzerland_data = {}
-    for emp_id in addicted_member_ids:
+    for emp_id in current_addicted_member_ids:
         # Get Switzerland-related statuses for this employee in the last 24 hours
         switzerland_records = Employee.objects.filter(
             employee_id=emp_id,
@@ -137,18 +147,41 @@ def employees(request):
                 'from_switzerland': None
             }
     
-    # Prepare data for chart: include ALL historical data for charts plus Switzerland info
+    # Prepare data for chart: include historical data for addicted members only
     employee_data = list(employees.values(
         'employee_id', 'name', 'created_on', 'effectiveness_working_stats',
         'manual_labour', 'intelligence', 'endurance', 'effectiveness_addiction', 'effectiveness_inactivity',
         'last_action_timestamp'))
     
-    # Add a flag to identify current members and Switzerland data
+    # Add current member data for alerts (all current members, not just addicted ones)
+    current_member_data = list(current_members.values(
+        'employee_id', 'name', 'created_on', 'effectiveness_working_stats',
+        'manual_labour', 'intelligence', 'endurance', 'effectiveness_addiction', 'effectiveness_inactivity',
+        'last_action_timestamp'))
+    
+    # Combine the datasets: historical data for charts + current data for alerts
+    # Remove duplicates by using a dict with employee_id+date as key
+    all_data_dict = {}
+    
+    # Add historical data for addicted members (for charts)
     for record in employee_data:
+        key = f"{record['employee_id']}_{record['created_on']}"
+        all_data_dict[key] = record
+    
+    # Add current member data (will overwrite if already exists, which is fine)
+    for record in current_member_data:
+        key = f"{record['employee_id']}_{record['created_on']}"
+        all_data_dict[key] = record
+    
+    # Convert back to list
+    combined_employee_data = list(all_data_dict.values())
+    
+    # Add flags to identify current members and Switzerland data
+    for record in combined_employee_data:
         record['is_current_member'] = record['created_on'] == most_recent_date
         
-        # Add Switzerland data for current members
-        if record['is_current_member'] and record['employee_id'] in switzerland_data:
+        # Add Switzerland data for current addicted members only
+        if record['is_current_member'] and record['employee_id'] in addicted_member_ids and record['employee_id'] in switzerland_data:
             sw_data = switzerland_data[record['employee_id']]
             record['switzerland_status'] = sw_data['has_switzerland_status']
             record['switzerland_to'] = sw_data['to_switzerland']
@@ -160,7 +193,7 @@ def employees(request):
             record['switzerland_in'] = None
             record['switzerland_from'] = None
     
-    employee_data_json = mark_safe(json.dumps(employee_data, default=str))
+    employee_data_json = mark_safe(json.dumps(combined_employee_data, default=str))
     return render(request, 'company/employees.html', {
         'employees': employees,
         'employee_data_json': employee_data_json
