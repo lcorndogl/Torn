@@ -83,6 +83,11 @@ class DailyEmployeeSnapshot(models.Model):
     snapshot_date = models.DateField()  # The date this snapshot was taken
     created_on = models.DateTimeField(auto_now_add=True)  # When this record was created
     modified_on = models.DateTimeField(auto_now=True)  # When this record was last updated
+    
+    # Travel tracking fields for Switzerland
+    last_travelled_to_switzerland = models.DateTimeField(null=True, blank=True)  # When employee started traveling to Switzerland
+    in_switzerland = models.DateTimeField(null=True, blank=True)  # When employee arrived in Switzerland
+    returning_from_switzerland = models.DateTimeField(null=True, blank=True)  # When employee started returning from Switzerland
 
     class Meta:
         unique_together = ['company', 'employee_id', 'snapshot_date']

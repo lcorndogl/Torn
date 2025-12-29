@@ -86,11 +86,13 @@ class CurrentEmployeeAdmin(admin.ModelAdmin):
 class DailyEmployeeSnapshotAdmin(admin.ModelAdmin):
     list_display = (
         'snapshot_date', 'employee_id', 'name', 'company_name', 'position',
-        'formatted_wage', 'status_description', 'created_on', 'modified_on'
+        'formatted_wage', 'status_description', 'last_travelled_to_switzerland',
+        'in_switzerland', 'returning_from_switzerland', 'created_on', 'modified_on'
     )
     list_filter = ('snapshot_date', 'company', 'position', 'status_description')
     search_fields = ('name', 'employee_id', 'company__name')
-    readonly_fields = ('created_on', 'modified_on')
+    readonly_fields = ('created_on', 'modified_on', 'last_travelled_to_switzerland', 
+                       'in_switzerland', 'returning_from_switzerland')
     ordering = ('-snapshot_date', 'employee_id')
 
     fieldsets = (
@@ -118,6 +120,10 @@ class DailyEmployeeSnapshotAdmin(admin.ModelAdmin):
                 'last_action_status', 'last_action_timestamp', 'last_action_relative',
                 'status_description', 'status_state', 'status_until'
             ),
+            'classes': ('collapse',)
+        }),
+        ('Travel Tracking - Switzerland', {
+            'fields': ('last_travelled_to_switzerland', 'in_switzerland', 'returning_from_switzerland'),
             'classes': ('collapse',)
         }),
         ('Metadata', {
