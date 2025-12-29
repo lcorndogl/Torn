@@ -85,15 +85,15 @@ class CurrentEmployeeAdmin(admin.ModelAdmin):
 @admin.register(DailyEmployeeSnapshot)
 class DailyEmployeeSnapshotAdmin(admin.ModelAdmin):
     list_display = (
-        'snapshot_date', 'employee_id', 'name', 'company_name', 'position',
-        'formatted_wage', 'status_description', 'last_travelled_to_switzerland',
-        'in_switzerland', 'returning_from_switzerland', 'created_on', 'modified_on'
+        'snapshot_date', 'name', 'company_name', 'position',
+        'formatted_wage', 'manual_labour', 'intelligence', 'endurance',
+        'last_travelled_to_switzerland', 'in_switzerland', 'returning_from_switzerland'
     )
     list_filter = ('snapshot_date', 'company', 'position', 'status_description')
     search_fields = ('name', 'employee_id', 'company__name')
     readonly_fields = ('created_on', 'modified_on', 'last_travelled_to_switzerland', 
                        'in_switzerland', 'returning_from_switzerland')
-    ordering = ('-snapshot_date', 'employee_id')
+    ordering = ['-snapshot_date', 'name']
 
     fieldsets = (
         ('Basic Information', {

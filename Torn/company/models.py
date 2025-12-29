@@ -96,7 +96,7 @@ class DailyEmployeeSnapshot(models.Model):
             models.Index(fields=['company', 'snapshot_date']),
             models.Index(fields=['snapshot_date']),
         ]
-        ordering = ['-snapshot_date', 'employee_id']
+        ordering = ['-snapshot_date', 'name']
 
     def __str__(self):
         return f"{self.name} ({self.employee_id}) - {self.snapshot_date}"
