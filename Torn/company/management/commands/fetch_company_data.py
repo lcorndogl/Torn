@@ -1,7 +1,7 @@
 import requests
 import environ
 from django.core.management.base import BaseCommand
-from company.models import Company, Employee
+from company.models import Company, Employee, CurrentEmployee
 from datetime import datetime
 
 # Initialize environment variables
@@ -51,6 +51,10 @@ class Command(BaseCommand):
             wage_count = 0
             total_employees = len(data['company_employees'])
             
+            # Remove existing CurrentEmployee records for this company
+            deleted_count = CurrentEmployee.objects.filter(company_id=company_data['ID']).delete()[0]
+            self.stdout.write(f'Removed {deleted_count} existing current employee records for company {company_data["ID"]}')
+            
             for employee_id, employee_data in data['company_employees'].items():
                 status_until = employee_data['status']['until']
                 if status_until == 0:
@@ -87,8 +91,19 @@ class Command(BaseCommand):
                     status_until=status_until,
                     created_on=normalized_time  # Use normalized timestamp for all employees in this fetch
                 )
+                
+                # Create or update CurrentEmployee record
+                CurrentEmployee.objects.update_or_create(
+                    user_id=employee_id,
+                    company_id=company_data['ID'],
+                    defaults={
+                        'username': employee_data['name'],
+                        'company_name': company_data['name']
+                    }
+                )
             
             self.stdout.write(f'Processed {total_employees} employees')
+            self.stdout.write(self.style.SUCCESS(f'Updated {total_employees} current employee records'))
             if wage_count > 0:
                 self.stdout.write(self.style.SUCCESS(f'Wage data available for {wage_count}/{total_employees} employees'))
             else:

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Company, Employee
+from .models import Company, Employee, CurrentEmployee
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
@@ -58,3 +58,25 @@ class EmployeeAdmin(admin.ModelAdmin):
         return "Not available"
     formatted_wage.admin_order_field = 'wage'  # Allows column order sorting
     formatted_wage.short_description = 'Wage'  # Renames column head
+
+
+@admin.register(CurrentEmployee)
+class CurrentEmployeeAdmin(admin.ModelAdmin):
+    list_display = ('user_id', 'username', 'company_id', 'company_name', 'created_on', 'updated_on')
+    list_filter = ('company_name',)
+    search_fields = ('username', 'user_id', 'company_name')
+    readonly_fields = ('created_on', 'updated_on')
+    ordering = ('-updated_on',)
+    
+    fieldsets = (
+        ('Employee Information', {
+            'fields': ('user_id', 'username')
+        }),
+        ('Company Information', {
+            'fields': ('company_id', 'company_name')
+        }),
+        ('Metadata', {
+            'fields': ('created_on', 'updated_on'),
+            'classes': ('collapse',)
+        })
+    )

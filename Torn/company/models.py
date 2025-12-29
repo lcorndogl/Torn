@@ -34,3 +34,23 @@ class Employee(models.Model):
 
     class Meta:
         pass
+
+
+class CurrentEmployee(models.Model):
+    """Model to track current employees in companies"""
+    user_id = models.IntegerField()
+    username = models.CharField(max_length=255)
+    company_id = models.IntegerField()
+    company_name = models.CharField(max_length=255)
+    created_on = models.DateTimeField(auto_now_add=True)
+    updated_on = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['user_id', 'company_id']
+        indexes = [
+            models.Index(fields=['user_id']),
+            models.Index(fields=['company_id']),
+        ]
+
+    def __str__(self):
+        return f"{self.username} - {self.company_name}"
