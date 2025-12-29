@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Company, Employee, CurrentEmployee
+from .models import Company, Employee, CurrentEmployee, DailyEmployeeSnapshot
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
@@ -80,3 +80,60 @@ class CurrentEmployeeAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
+
+
+@admin.register(DailyEmployeeSnapshot)
+class DailyEmployeeSnapshotAdmin(admin.ModelAdmin):
+    list_display = (
+        'snapshot_date', 'employee_id', 'name', 'company_name', 'position',
+        'formatted_wage', 'status_description', 'created_on', 'modified_on'
+    )
+    list_filter = ('snapshot_date', 'company', 'position', 'status_description')
+    search_fields = ('name', 'employee_id', 'company__name')
+    readonly_fields = ('created_on', 'modified_on')
+    ordering = ('-snapshot_date', 'employee_id')
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('employee_id', 'name', 'company', 'position', 'snapshot_date')
+        }),
+        ('Financial', {
+            'fields': ('wage',)
+        }),
+        ('Stats', {
+            'fields': ('manual_labour', 'intelligence', 'endurance'),
+            'classes': ('collapse',)
+        }),
+        ('Effectiveness', {
+            'fields': (
+                'effectiveness_working_stats', 'effectiveness_settled_in',
+                'effectiveness_merits', 'effectiveness_director_education',
+                'effectiveness_management', 'effectiveness_inactivity',
+                'effectiveness_addiction', 'effectiveness_total'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Status & Activity', {
+            'fields': (
+                'last_action_status', 'last_action_timestamp', 'last_action_relative',
+                'status_description', 'status_state', 'status_until'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('created_on', 'modified_on'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def company_name(self, obj):
+        return obj.company.name
+    company_name.admin_order_field = 'company'
+    company_name.short_description = 'Company Name'
+
+    def formatted_wage(self, obj):
+        if obj.wage is not None:
+            return f"${obj.wage:,}"
+        return "Not available"
+    formatted_wage.admin_order_field = 'wage'
+    formatted_wage.short_description = 'Wage'
