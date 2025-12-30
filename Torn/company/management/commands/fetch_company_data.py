@@ -23,14 +23,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         force_run = kwargs.get('force', False)
-        # Enforce run window: only proceed after 18:22 UTC (to align with daily snapshot timing)
-        now_utc = datetime.utcnow().time()
-        if now_utc < time(18, 22) and not force_run:
-            self.stdout.write(self.style.WARNING(
-                f"Skipping fetch: current UTC time {now_utc.strftime('%H:%M:%S')} is before 18:22"
-            ))
-            return
-
+        
         # Run once per available key so we can ingest data for both companies if keys differ
         pc_key = env('PC_KEY', default=None)
         keys_to_use = [
@@ -39,6 +32,7 @@ class Command(BaseCommand):
         ]
 
         ran_any = False
+        now_utc = datetime.utcnow().time()
 
         for key_type, api_key in keys_to_use:
             if not api_key:
@@ -50,14 +44,23 @@ class Command(BaseCommand):
             # Create a normalized timestamp for this fetch (rounded to the minute)
             fetch_time = datetime.now()
             normalized_time = fetch_time.replace(second=0, microsecond=0)
+            
+            # For Employee model: always use today's date
+            employee_created_on = normalized_time
+            
+            # For DailyEmployeeSnapshot: only create snapshot after 18:22 UTC
             snapshot_date = normalized_time.date()
-            if force_run and now_utc < time(18, 22):
+            skip_snapshot = False
+            if now_utc < time(18, 22) and not force_run:
+                skip_snapshot = True
+                self.stdout.write(self.style.WARNING(
+                    f"Current UTC time {now_utc.strftime('%H:%M:%S')} is before 18:22; skipping daily snapshot creation"
+                ))
+            elif force_run and now_utc < time(18, 22):
                 snapshot_date = snapshot_date - timedelta(days=1)
                 self.stdout.write(self.style.WARNING(
                     f"Force flag set before 18:22 UTC; recording snapshots for previous day {snapshot_date}"
                 ))
-            # Align employee created_on to the snapshot date (e.g., previous day when forced)
-            employee_created_on = datetime.combine(snapshot_date, normalized_time.time())
             self.stdout.write(f'Using normalized timestamp: {normalized_time}')
             
             # Fetch the company tied to the key owner (no hardcoded company ID)
@@ -145,33 +148,35 @@ class Command(BaseCommand):
                             )
 
                     # Upsert daily snapshot to ensure one record per employee per day
-                    DailyEmployeeSnapshot.objects.update_or_create(
-                        company=company,
-                        employee_id=employee_id,
-                        snapshot_date=snapshot_date,
-                        defaults={
-                            'name': employee_data['name'],
-                            'position': employee_data['position'],
-                            'wage': wage,
-                            'manual_labour': employee_data.get('manual_labor', 0),
-                            'intelligence': employee_data.get('intelligence', 0),
-                            'endurance': employee_data.get('endurance', 0),
-                            'effectiveness_working_stats': employee_data.get('effectiveness', {}).get('working_stats', 0),
-                            'effectiveness_settled_in': employee_data.get('effectiveness', {}).get('settled_in', 0),
-                            'effectiveness_merits': employee_data.get('effectiveness', {}).get('merits', 0),
-                            'effectiveness_director_education': employee_data.get('effectiveness', {}).get('director_education', 0),
-                            'effectiveness_management': employee_data.get('effectiveness', {}).get('management', 0),
-                            'effectiveness_inactivity': employee_data.get('effectiveness', {}).get('inactivity', 0),
-                            'effectiveness_addiction': employee_data.get('effectiveness', {}).get('addiction', 0),
-                            'effectiveness_total': employee_data.get('effectiveness', {}).get('total', 0),
-                            'last_action_status': employee_data['last_action']['status'],
-                            'last_action_timestamp': datetime.fromtimestamp(employee_data['last_action']['timestamp']),
-                            'last_action_relative': employee_data['last_action']['relative'],
-                            'status_description': employee_data['status']['description'],
-                            'status_state': employee_data['status']['state'],
-                            'status_until': status_until,
-                        }
-                    )
+                    # Only create snapshot if it's after 18:22 UTC or forced
+                    if not skip_snapshot:
+                        DailyEmployeeSnapshot.objects.update_or_create(
+                            company=company,
+                            employee_id=employee_id,
+                            snapshot_date=snapshot_date,
+                            defaults={
+                                'name': employee_data['name'],
+                                'position': employee_data['position'],
+                                'wage': wage,
+                                'manual_labour': employee_data.get('manual_labor', 0),
+                                'intelligence': employee_data.get('intelligence', 0),
+                                'endurance': employee_data.get('endurance', 0),
+                                'effectiveness_working_stats': employee_data.get('effectiveness', {}).get('working_stats', 0),
+                                'effectiveness_settled_in': employee_data.get('effectiveness', {}).get('settled_in', 0),
+                                'effectiveness_merits': employee_data.get('effectiveness', {}).get('merits', 0),
+                                'effectiveness_director_education': employee_data.get('effectiveness', {}).get('director_education', 0),
+                                'effectiveness_management': employee_data.get('effectiveness', {}).get('management', 0),
+                                'effectiveness_inactivity': employee_data.get('effectiveness', {}).get('inactivity', 0),
+                                'effectiveness_addiction': employee_data.get('effectiveness', {}).get('addiction', 0),
+                                'effectiveness_total': employee_data.get('effectiveness', {}).get('total', 0),
+                                'last_action_status': employee_data['last_action']['status'],
+                                'last_action_timestamp': datetime.fromtimestamp(employee_data['last_action']['timestamp']),
+                                'last_action_relative': employee_data['last_action']['relative'],
+                                'status_description': employee_data['status']['description'],
+                                'status_state': employee_data['status']['state'],
+                                'status_until': status_until,
+                            }
+                        )
                     
                     # Create or update CurrentEmployee record
                     CurrentEmployee.objects.update_or_create(
