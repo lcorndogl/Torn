@@ -148,35 +148,63 @@ class Command(BaseCommand):
                             )
 
                     # Upsert daily snapshot to ensure one record per employee per day
-                    # Only create snapshot if it's after 18:22 UTC or forced
-                    if not skip_snapshot:
-                        DailyEmployeeSnapshot.objects.update_or_create(
-                            company=company,
-                            employee_id=employee_id,
-                            snapshot_date=snapshot_date,
-                            defaults={
-                                'name': employee_data['name'],
-                                'position': employee_data['position'],
-                                'wage': wage,
-                                'manual_labour': employee_data.get('manual_labor', 0),
-                                'intelligence': employee_data.get('intelligence', 0),
-                                'endurance': employee_data.get('endurance', 0),
-                                'effectiveness_working_stats': employee_data.get('effectiveness', {}).get('working_stats', 0),
-                                'effectiveness_settled_in': employee_data.get('effectiveness', {}).get('settled_in', 0),
-                                'effectiveness_merits': employee_data.get('effectiveness', {}).get('merits', 0),
-                                'effectiveness_director_education': employee_data.get('effectiveness', {}).get('director_education', 0),
-                                'effectiveness_management': employee_data.get('effectiveness', {}).get('management', 0),
-                                'effectiveness_inactivity': employee_data.get('effectiveness', {}).get('inactivity', 0),
-                                'effectiveness_addiction': employee_data.get('effectiveness', {}).get('addiction', 0),
-                                'effectiveness_total': employee_data.get('effectiveness', {}).get('total', 0),
-                                'last_action_status': employee_data['last_action']['status'],
-                                'last_action_timestamp': datetime.fromtimestamp(employee_data['last_action']['timestamp']),
-                                'last_action_relative': employee_data['last_action']['relative'],
-                                'status_description': employee_data['status']['description'],
-                                'status_state': employee_data['status']['state'],
-                                'status_until': status_until,
-                            }
-                        )
+                    # Before 18:22 UTC: only update Switzerland-related fields
+                    # After 18:22 UTC or with force: update all fields
+                    
+                    # Always prepare full defaults
+                    snapshot_defaults = {
+                        'name': employee_data['name'],
+                        'position': employee_data['position'],
+                        'wage': wage,
+                        'manual_labour': employee_data.get('manual_labor', 0),
+                        'intelligence': employee_data.get('intelligence', 0),
+                        'endurance': employee_data.get('endurance', 0),
+                        'effectiveness_working_stats': employee_data.get('effectiveness', {}).get('working_stats', 0),
+                        'effectiveness_settled_in': employee_data.get('effectiveness', {}).get('settled_in', 0),
+                        'effectiveness_merits': employee_data.get('effectiveness', {}).get('merits', 0),
+                        'effectiveness_director_education': employee_data.get('effectiveness', {}).get('director_education', 0),
+                        'effectiveness_management': employee_data.get('effectiveness', {}).get('management', 0),
+                        'effectiveness_inactivity': employee_data.get('effectiveness', {}).get('inactivity', 0),
+                        'effectiveness_addiction': employee_data.get('effectiveness', {}).get('addiction', 0),
+                        'effectiveness_total': employee_data.get('effectiveness', {}).get('total', 0),
+                        'last_action_status': employee_data['last_action']['status'],
+                        'last_action_timestamp': datetime.fromtimestamp(employee_data['last_action']['timestamp']),
+                        'last_action_relative': employee_data['last_action']['relative'],
+                        'status_description': employee_data['status']['description'],
+                        'status_state': employee_data['status']['state'],
+                        'status_until': status_until,
+                    }
+                    
+                    # Extract Switzerland fields
+                    switzerland_fields = {
+                        'last_travelled_to_switzerland': None,  # Will be extracted from status if present
+                        'in_switzerland': None,
+                        'returning_from_switzerland': None,
+                    }
+                    
+                    # Parse Switzerland status if present
+                    status_desc = employee_data['status']['description'].lower()
+                    if 'to switzerland' in status_desc:
+                        switzerland_fields['last_travelled_to_switzerland'] = employee_data['last_action']['timestamp']
+                    if 'in switzerland' in status_desc:
+                        switzerland_fields['in_switzerland'] = employee_data['last_action']['timestamp']
+                    if 'from switzerland' in status_desc or 'returning from switzerland' in status_desc:
+                        switzerland_fields['returning_from_switzerland'] = employee_data['last_action']['timestamp']
+                    
+                    # Determine which fields to use for update
+                    if skip_snapshot:
+                        # Before 18:22 UTC: only update Switzerland fields
+                        update_defaults = switzerland_fields
+                    else:
+                        # After 18:22 UTC or forced: update all fields including Switzerland
+                        update_defaults = {**snapshot_defaults, **switzerland_fields}
+                    
+                    DailyEmployeeSnapshot.objects.update_or_create(
+                        company=company,
+                        employee_id=employee_id,
+                        snapshot_date=snapshot_date,
+                        defaults=update_defaults
+                    )
                     
                     # Create or update CurrentEmployee record
                     CurrentEmployee.objects.update_or_create(
