@@ -48,13 +48,15 @@ class Command(BaseCommand):
             # For Employee model: always use today's date
             employee_created_on = normalized_time
             
-            # For DailyEmployeeSnapshot: only create snapshot after 18:22 UTC
+            # For DailyEmployeeSnapshot: only create/update snapshot after 18:22 UTC
             snapshot_date = normalized_time.date()
             skip_snapshot = False
             if now_utc < time(18, 22) and not force_run:
                 skip_snapshot = True
+                # Before 18:22 UTC: update previous day's snapshot with Switzerland info
+                snapshot_date = snapshot_date - timedelta(days=1)
                 self.stdout.write(self.style.WARNING(
-                    f"Current UTC time {now_utc.strftime('%H:%M:%S')} is before 18:22; skipping daily snapshot creation"
+                    f"Current UTC time {now_utc.strftime('%H:%M:%S')} is before 18:22; updating previous day's snapshot ({snapshot_date}) with Switzerland info"
                 ))
             elif force_run and now_utc < time(18, 22):
                 snapshot_date = snapshot_date - timedelta(days=1)
@@ -175,36 +177,46 @@ class Command(BaseCommand):
                         'status_until': status_until,
                     }
                     
-                    # Extract Switzerland fields
-                    switzerland_fields = {
-                        'last_travelled_to_switzerland': None,  # Will be extracted from status if present
-                        'in_switzerland': None,
-                        'returning_from_switzerland': None,
-                    }
-                    
-                    # Parse Switzerland status if present
-                    status_desc = employee_data['status']['description'].lower()
-                    if 'to switzerland' in status_desc:
-                        switzerland_fields['last_travelled_to_switzerland'] = employee_data['last_action']['timestamp']
-                    if 'in switzerland' in status_desc:
-                        switzerland_fields['in_switzerland'] = employee_data['last_action']['timestamp']
-                    if 'from switzerland' in status_desc or 'returning from switzerland' in status_desc:
-                        switzerland_fields['returning_from_switzerland'] = employee_data['last_action']['timestamp']
-                    
-                    # Determine which fields to use for update
-                    if skip_snapshot:
-                        # Before 18:22 UTC: only update Switzerland fields
-                        update_defaults = switzerland_fields
-                    else:
-                        # After 18:22 UTC or forced: update all fields including Switzerland
-                        update_defaults = {**snapshot_defaults, **switzerland_fields}
-                    
-                    DailyEmployeeSnapshot.objects.update_or_create(
+                    # Get or create snapshot with full defaults
+                    snapshot_obj, created = DailyEmployeeSnapshot.objects.get_or_create(
                         company=company,
                         employee_id=employee_id,
                         snapshot_date=snapshot_date,
-                        defaults=update_defaults
+                        defaults=snapshot_defaults
                     )
+                    
+                    # If after 18:22 UTC or forced, update all fields
+                    if not skip_snapshot:
+                        for field, value in snapshot_defaults.items():
+                            setattr(snapshot_obj, field, value)
+                        snapshot_obj.save()
+                    else:
+                        # Before 18:22 UTC: only update Switzerland fields
+                        status_desc = employee_data['status']['description'].lower()
+                        updated = False
+                        
+                        if 'to switzerland' in status_desc:
+                            snapshot_obj.last_travelled_to_switzerland = datetime.fromtimestamp(
+                                employee_data['last_action']['timestamp']
+                            )
+                            updated = True
+                        if 'in switzerland' in status_desc:
+                            snapshot_obj.in_switzerland = datetime.fromtimestamp(
+                                employee_data['last_action']['timestamp']
+                            )
+                            updated = True
+                        if 'from switzerland' in status_desc or 'returning from switzerland' in status_desc:
+                            snapshot_obj.returning_from_switzerland = datetime.fromtimestamp(
+                                employee_data['last_action']['timestamp']
+                            )
+                            updated = True
+                        
+                        if updated:
+                            snapshot_obj.save(update_fields=[
+                                'last_travelled_to_switzerland',
+                                'in_switzerland',
+                                'returning_from_switzerland'
+                            ])
                     
                     # Create or update CurrentEmployee record
                     CurrentEmployee.objects.update_or_create(
