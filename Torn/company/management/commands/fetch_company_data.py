@@ -191,32 +191,35 @@ class Command(BaseCommand):
                             setattr(snapshot_obj, field, value)
                         snapshot_obj.save()
                     else:
-                        # Before 18:22 UTC: only update Switzerland fields
+                        # Before 18:22 UTC: keep the snapshot_date on the previous day, but
+                        # always refresh last action fields. Update Switzerland timestamps when present.
                         status_desc = employee_data['status']['description'].lower()
-                        updated = False
-                        
+                        last_action_dt = datetime.fromtimestamp(employee_data['last_action']['timestamp'])
+
+                        # Always refresh last action fields
+                        snapshot_obj.last_action_status = employee_data['last_action']['status']
+                        snapshot_obj.last_action_timestamp = last_action_dt
+                        snapshot_obj.last_action_relative = employee_data['last_action']['relative']
+
+                        # Optionally refresh Switzerland fields
+                        sw_fields = []
                         if 'to switzerland' in status_desc:
-                            snapshot_obj.last_travelled_to_switzerland = datetime.fromtimestamp(
-                                employee_data['last_action']['timestamp']
-                            )
-                            updated = True
+                            snapshot_obj.last_travelled_to_switzerland = last_action_dt
+                            sw_fields.append('last_travelled_to_switzerland')
                         if 'in switzerland' in status_desc:
-                            snapshot_obj.in_switzerland = datetime.fromtimestamp(
-                                employee_data['last_action']['timestamp']
-                            )
-                            updated = True
+                            snapshot_obj.in_switzerland = last_action_dt
+                            sw_fields.append('in_switzerland')
                         if 'from switzerland' in status_desc or 'returning from switzerland' in status_desc:
-                            snapshot_obj.returning_from_switzerland = datetime.fromtimestamp(
-                                employee_data['last_action']['timestamp']
-                            )
-                            updated = True
-                        
-                        if updated:
-                            snapshot_obj.save(update_fields=[
-                                'last_travelled_to_switzerland',
-                                'in_switzerland',
-                                'returning_from_switzerland'
-                            ])
+                            snapshot_obj.returning_from_switzerland = last_action_dt
+                            sw_fields.append('returning_from_switzerland')
+
+                        update_fields = [
+                            'last_action_status',
+                            'last_action_timestamp',
+                            'last_action_relative'
+                        ] + sw_fields
+
+                        snapshot_obj.save(update_fields=update_fields)
                     
                     # Create or update CurrentEmployee record
                     CurrentEmployee.objects.update_or_create(

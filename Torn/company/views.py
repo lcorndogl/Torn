@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Company, Employee, DailyEmployeeSnapshot
+from .models import Company, Employee, DailyEmployeeSnapshot, CurrentEmployee
 import json
 from django.utils.safestring import mark_safe
 from datetime import datetime
@@ -26,12 +26,49 @@ def employees(request):
     # Get employee data from DailyEmployeeSnapshot model
     from django.db.models import Max
     from datetime import timedelta
-    
-    # Get all snapshots for company 110380 with effectiveness_total > 0
-    all_snapshots = DailyEmployeeSnapshot.objects.filter(
-        company__company_id=110380, 
-        effectiveness_total__gt=0
+
+    # Determine target company (default to 110380) and list companies with data in last 7 days
+    last_week = timezone.now().date() - timedelta(days=7)
+    available_companies = Company.objects.filter(
+        dailyemployeesnapshot__snapshot_date__gte=last_week
+    ).distinct().order_by('name')
+
+    requested_company_id = request.GET.get('company_id')
+    default_company_id = 110380
+    if requested_company_id and requested_company_id.isdigit():
+        target_company_id = int(requested_company_id)
+    else:
+        # Fall back to default if provided id missing/invalid
+        target_company_id = default_company_id
+
+    # If target company not in available list, fall back to first available or default
+    if not available_companies.filter(company_id=target_company_id).exists():
+        if available_companies.exists():
+            target_company_id = available_companies.first().company_id
+        else:
+            target_company_id = default_company_id
+
+    # Only include employees currently in the company (CurrentEmployee)
+    current_member_ids = list(
+        CurrentEmployee.objects.filter(company_id=target_company_id)
+        .values_list('user_id', flat=True)
     )
+
+    # Get all snapshots for target company with effectiveness_total > 0 and limited to current members
+    all_snapshots = DailyEmployeeSnapshot.objects.filter(
+        company__company_id=target_company_id,
+        effectiveness_total__gt=0,
+        employee_id__in=current_member_ids
+    )
+
+    # If no current members, short-circuit with empty data
+    if not current_member_ids or not all_snapshots.exists():
+        return render(request, 'company/employees.html', {
+            'employees': [],
+            'employee_data_json': mark_safe(json.dumps([], default=str)),
+            'available_companies': available_companies,
+            'selected_company_id': target_company_id
+        })
     
     # Find the most recent snapshot date
     most_recent_date = all_snapshots.aggregate(Max('snapshot_date'))['snapshot_date__max']
@@ -46,9 +83,10 @@ def employees(request):
         if snapshot.effectiveness_addiction <= -6:
             current_addicted_member_ids.append(snapshot.employee_id)
     
-    # Get historical data for members with current addiction issues
+    # Get historical data for all current members (not just currently-addicted ones)
+    # This allows date range filtering to work across all members
     snapshots = all_snapshots.filter(
-        employee_id__in=current_addicted_member_ids
+        employee_id__in=current_member_ids
     ).order_by('snapshot_date')
     
     # Get Switzerland-related snapshot data for current addicted members
@@ -131,5 +169,7 @@ def employees(request):
     employee_data_json = mark_safe(json.dumps(combined_employee_data, default=str))
     return render(request, 'company/employees.html', {
         'employees': snapshots,
-        'employee_data_json': employee_data_json
+        'employee_data_json': employee_data_json,
+        'available_companies': available_companies,
+        'selected_company_id': target_company_id
     })

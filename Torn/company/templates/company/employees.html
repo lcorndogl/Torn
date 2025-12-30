@@ -6,25 +6,59 @@
 {% block title %}Faction Comparison{% endblock %}
 
 {% block content %}
+<style>
+    .company-range-control {
+        background-color: #1f1f1f !important;
+        color: #f6c344 !important;
+        border: 1px solid #f6c344 !important;
+    }
+    .company-range-control option {
+        background-color: #1f1f1f;
+        color: #f6c344;
+    }
+    .company-range-control:focus {
+        box-shadow: 0 0 0 0.2rem rgba(246, 195, 68, 0.25);
+    }
+    .selector-card {
+        background-color: #1f1f1f;
+        border: none;
+        box-shadow: none;
+    }
+</style>
 <!-- Date Range Selection -->
 <div class="container-fluid mb-4">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="card-title">Select Date Range</h5>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <label for="startDate" class="form-label">Start Date:</label>
-                            <input type="date" id="startDate" class="form-control">
+            <div class="card selector-card">
+                <div class="card-body text-center text-warning">
+                    <h5 class="card-title text-warning">Select Company & Date Range</h5>
+                    <div class="row mb-3 justify-content-center">
+                        <div class="col-md-8">
+                            <div class="d-flex flex-column align-items-center">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <label for="companySelect" class="form-label mb-0 text-warning">Company</label>
+                                </div>
+                                <select id="companySelect" class="form-select text-center company-range-control" style="max-width: 360px;">
+                                    {% for company in available_companies %}
+                                        <option value="{{ company.company_id }}" {% if company.company_id == selected_company_id %}selected{% endif %}>{{ company.name }} ({{ company.company_id }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label for="endDate" class="form-label">End Date:</label>
-                            <input type="date" id="endDate" class="form-control">
+                    </div>
+                    <div class="row justify-content-center">
+                        <div class="col-md-4 mb-3">
+                            <label for="startDate" class="form-label text-warning">Start Date:</label>
+                            <input type="date" id="startDate" class="form-control company-range-control">
                         </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button id="updateCharts" class="btn btn-primary me-2">Update</button>
-                            <button id="resetRange" class="btn btn-secondary">Reset</button>
+                        <div class="col-md-4 mb-3">
+                            <label for="endDate" class="form-label text-warning">End Date:</label>
+                            <input type="date" id="endDate" class="form-control company-range-control">
+                        </div>
+                    </div>
+                    <div class="row justify-content-center mt-2">
+                        <div class="col-auto">
+                            <button id="updateCharts" class="btn btn-primary px-4">Update</button>
                         </div>
                     </div>
                 </div>
@@ -47,7 +81,7 @@
         </div>
         <div class="col-md-4 d-flex">
             <div class="alert alert-warning flex-fill text-center">
-                <h5 class="mb-3"><i class="fas fa-exclamation-triangle"></i> Current Addictions (≤ -6)</h5>
+                <h5 class="mb-3"><i class="fas fa-exclamation-triangle"></i> Yesterdays Addictions (≤ -6)</h5>
                 <div id="addictionAlerts">
                     <!-- Addiction alerts will be inserted here -->
                 </div>
@@ -79,6 +113,7 @@
 <script>
     // Load employee data from context variable
     const rawData = {{ employee_data_json| safe }};
+    const selectedCompanyId = {{ selected_company_id }};
     const colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan'];
     const now = new Date(); // Define now variable for any remaining old code references
     
@@ -265,6 +300,11 @@
             cutoffTime.setUTCHours(18, 0, 0, 0);
         }
         
+        // Cutoff to drop inactivity alerts for people who logged in after 18:22 UTC the previous day
+        const prevDay1822GMT = new Date(currentTimeGMT);
+        prevDay1822GMT.setUTCDate(prevDay1822GMT.getUTCDate() - 1);
+        prevDay1822GMT.setUTCHours(18, 22, 0, 0);
+
         // Check only current members for inactivity alerts
         Object.keys(grouped).forEach(empId => {
             const employeeData = Object.values(grouped[empId]);
@@ -290,6 +330,12 @@
                         const lastActionTime = new Date(latestData.last_action_timestamp);
                         // Convert last action time to GMT for comparison
                         const lastActionTimeGMT = new Date(lastActionTime.getTime() + (lastActionTime.getTimezoneOffset() * 60000));
+
+                        // If they have inactivity but logged in after 18:22 UTC the previous day, suppress the alert
+                        if (inactivity < 0 && lastActionTimeGMT >= prevDay1822GMT) {
+                            shouldInclude = false;
+                            reason = '';
+                        }
                         
                         if (lastActionTimeGMT < cutoffTime) {
                             shouldInclude = true;
@@ -467,7 +513,7 @@
             const currentMinuteGMT = currentTimeGMT.getUTCMinutes();
             const isAfter1816GMT = (currentHourGMT > 18) || (currentHourGMT === 18 && currentMinuteGMT >= 16);
             const timeCondition = !isAfter1816GMT ? 'before 18:00 yesterday (GMT)' : 'before 18:00 today (GMT)';
-            inactivityDiv.innerHTML = `<p style="color: #0c5460; text-align: center;" class="mb-0">No current members with inactivity < 0 or last action ${timeCondition}</p>`;
+            inactivityDiv.innerHTML = `<p style="color: #0c5460; text-align: center;" class="mb-0">No current members with last action before ${timeCondition}</p>`;
         }
     }
     
@@ -1016,6 +1062,17 @@
         // Create initial charts with default range
         createCharts();
         console.log('Initial charts created');
+
+        // Company dropdown change handler (reload page with company_id)
+        const companySelect = document.getElementById('companySelect');
+        if (companySelect) {
+            companySelect.addEventListener('change', function() {
+                const companyId = this.value;
+                const url = new URL(window.location.href);
+                url.searchParams.set('company_id', companyId);
+                window.location.href = url.toString();
+            });
+        }
         
         // Add event listeners
         const updateButton = document.getElementById('updateCharts');
