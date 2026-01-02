@@ -190,10 +190,6 @@ class Command(BaseCommand):
                 wage_count = 0
                 total_employees = len(data['company_employees'])
                 
-                # Remove existing CurrentEmployee records for this company
-                deleted_count = CurrentEmployee.objects.filter(company_id=company_data['ID']).delete()[0]
-                self.stdout.write(f'Removed {deleted_count} existing current employee records for company {company_data["ID"]}')
-                
                 for employee_id, employee_data in data['company_employees'].items():
                     # Before 18:00 UTC: skip if snapshot already exists for this date (yesterday)
                     skip_this_employee = False
@@ -262,42 +258,6 @@ class Command(BaseCommand):
                                 **employee_defaults
                             )
 
-                    # If after 18:22 UTC or forced, update all fields
-                    if not skip_snapshot:
-                        for field, value in snapshot_defaults.items():
-                            setattr(snapshot_obj, field, value)
-                        snapshot_obj.save()
-                    else:
-                        # Before 18:22 UTC: keep the snapshot_date on the previous day, but
-                        # always refresh last action fields. Update Switzerland timestamps when present.
-                        status_desc = employee_data['status']['description'].lower()
-                        last_action_dt = datetime.fromtimestamp(employee_data['last_action']['timestamp'])
-
-                        # Always refresh last action fields
-                        snapshot_obj.last_action_status = employee_data['last_action']['status']
-                        snapshot_obj.last_action_timestamp = last_action_dt
-                        snapshot_obj.last_action_relative = employee_data['last_action']['relative']
-
-                        # Optionally refresh Switzerland fields
-                        sw_fields = []
-                        if 'to switzerland' in status_desc:
-                            snapshot_obj.last_travelled_to_switzerland = last_action_dt
-                            sw_fields.append('last_travelled_to_switzerland')
-                        if 'in switzerland' in status_desc:
-                            snapshot_obj.in_switzerland = last_action_dt
-                            sw_fields.append('in_switzerland')
-                        if 'from switzerland' in status_desc or 'returning from switzerland' in status_desc:
-                            snapshot_obj.returning_from_switzerland = last_action_dt
-                            sw_fields.append('returning_from_switzerland')
-
-                        update_fields = [
-                            'last_action_status',
-                            'last_action_timestamp',
-                            'last_action_relative'
-                        ] + sw_fields
-
-                        snapshot_obj.save(update_fields=update_fields)
-                    
                     # Create or update CurrentEmployee record
                     CurrentEmployee.objects.update_or_create(
                         user_id=employee_id,
@@ -307,6 +267,14 @@ class Command(BaseCommand):
                             'company_name': company_data['name']
                         }
                     )
+                
+                # Delete CurrentEmployee records not in the current fetch (only after successful processing)
+                current_employee_ids = set(int(eid) for eid in data['company_employees'].keys())
+                deleted_count = CurrentEmployee.objects.filter(
+                    company_id=company_data['ID']
+                ).exclude(user_id__in=current_employee_ids).delete()[0]
+                if deleted_count > 0:
+                    self.stdout.write(f'Removed {deleted_count} outdated current employee records for company {company_data["ID"]}')
                 
                 self.stdout.write(f'Processed {total_employees} employees')
                 self.stdout.write(self.style.SUCCESS(f'Updated {total_employees} current employee records'))
