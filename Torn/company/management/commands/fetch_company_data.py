@@ -48,31 +48,20 @@ class Command(BaseCommand):
             # For Employee model: always use today's date
             employee_created_on = normalized_time
             
-            # For DailyEmployeeSnapshot: only create/update snapshot after 18:22 UTC
+            # For DailyEmployeeSnapshot: check if before 18:00 UTC
             snapshot_date = normalized_time.date()
-            skip_snapshot = False
-            if now_utc < time(18, 22) and not force_run:
-                skip_snapshot = True
-                # Before 18:22 UTC: update previous day's snapshot with Switzerland info
+            if now_utc < time(18, 0) and not force_run:
+                # Before 18:00 UTC: use yesterday's date for snapshots
                 snapshot_date = snapshot_date - timedelta(days=1)
-                self.stdout.write(self.style.WARNING(
-                    f"Current UTC time {now_utc.strftime('%H:%M:%S')} is before 18:22; updating previous day's snapshot ({snapshot_date}) with Switzerland info"
-                ))
-            elif force_run and now_utc < time(18, 22):
-                snapshot_date = snapshot_date - timedelta(days=1)
-                self.stdout.write(self.style.WARNING(
-                    f"Force flag set before 18:22 UTC; recording snapshots for previous day {snapshot_date}"
-                ))
+            # If at/after 18:00 UTC: use today's date
             self.stdout.write(f'Using normalized timestamp: {normalized_time}')
             
-            # For Stock: only process after 18:00 UTC
+            # For Stock: check if before 18:00 UTC
             stock_snapshot_date = normalized_time.date()
-            skip_stock = False
             if now_utc < time(18, 0) and not force_run:
-                skip_stock = True
-                self.stdout.write(self.style.WARNING(
-                    f"Current UTC time {now_utc.strftime('%H:%M:%S')} is before 18:00; skipping stock data processing"
-                ))
+                # Before 18:00 UTC: use yesterday's date for snapshots
+                stock_snapshot_date = stock_snapshot_date - timedelta(days=1)
+            # If at/after 18:00 UTC: use today's date
             
             # Fetch the company tied to the key owner (no hardcoded company ID)
             # Try to fetch with stock data; fall back to without stock if it fails
@@ -111,9 +100,24 @@ class Command(BaseCommand):
             stock_data = data.get('company_stock', {})
             detailed_data = data.get('company_detailed', {})
             
-            if not skip_stock and stock_data:
+            if stock_data:
                 self.stdout.write(f'Found stock data for {len(stock_data)} item(s)')
                 for item_name, stock_info in stock_data.items():
+                    # Before 18:00 UTC: skip if record already exists for this date (yesterday)
+                    skip_this_product = False
+                    if now_utc < time(18, 0) and not force_run:
+                        if Sale.objects.filter(
+                            company=company,
+                            product_name=item_name,
+                            snapshot_date=stock_snapshot_date
+                        ).exists():
+                            skip_this_product = True
+                            self.stdout.write(self.style.WARNING(
+                                f"Record already exists for {item_name} on {stock_snapshot_date}; skipping"
+                            ))
+                    
+                    if skip_this_product:
+                        continue
                     # Calculate created_amount based on yesterday's stock
                     # created = sold_today + (in_stock_today - in_stock_yesterday)
                     sold_today = stock_info.get('sold_amount', 0)
@@ -161,7 +165,7 @@ class Command(BaseCommand):
                     )
                     
                 self.stdout.write(self.style.SUCCESS(f'Processed {len(stock_data)} stock item(s) for {stock_snapshot_date}'))
-            elif not skip_stock and detailed_data:
+            elif detailed_data and not (now_utc < time(18, 0) and not force_run):
                 # Even without stock data, record detailed company metrics if available
                 upgrades = detailed_data.get('upgrades', {})
                 Sale.objects.update_or_create(
@@ -191,6 +195,18 @@ class Command(BaseCommand):
                 self.stdout.write(f'Removed {deleted_count} existing current employee records for company {company_data["ID"]}')
                 
                 for employee_id, employee_data in data['company_employees'].items():
+                    # Before 18:00 UTC: skip if snapshot already exists for this date (yesterday)
+                    skip_this_employee = False
+                    if now_utc < time(18, 0) and not force_run:
+                        if DailyEmployeeSnapshot.objects.filter(
+                            company=company,
+                            employee_id=employee_id,
+                            snapshot_date=snapshot_date
+                        ).exists():
+                            skip_this_employee = True
+                    
+                    if skip_this_employee:
+                        continue
                     status_until = employee_data['status']['until']
                     if status_until == 0:
                         status_until = None
@@ -246,42 +262,6 @@ class Command(BaseCommand):
                                 **employee_defaults
                             )
 
-                    # Upsert daily snapshot to ensure one record per employee per day
-                    # Before 18:22 UTC: only update Switzerland-related fields
-                    # After 18:22 UTC or with force: update all fields
-                    
-                    # Always prepare full defaults
-                    snapshot_defaults = {
-                        'name': employee_data['name'],
-                        'position': employee_data['position'],
-                        'wage': wage,
-                        'manual_labour': employee_data.get('manual_labor', 0),
-                        'intelligence': employee_data.get('intelligence', 0),
-                        'endurance': employee_data.get('endurance', 0),
-                        'effectiveness_working_stats': employee_data.get('effectiveness', {}).get('working_stats', 0),
-                        'effectiveness_settled_in': employee_data.get('effectiveness', {}).get('settled_in', 0),
-                        'effectiveness_merits': employee_data.get('effectiveness', {}).get('merits', 0),
-                        'effectiveness_director_education': employee_data.get('effectiveness', {}).get('director_education', 0),
-                        'effectiveness_management': employee_data.get('effectiveness', {}).get('management', 0),
-                        'effectiveness_inactivity': employee_data.get('effectiveness', {}).get('inactivity', 0),
-                        'effectiveness_addiction': employee_data.get('effectiveness', {}).get('addiction', 0),
-                        'effectiveness_total': employee_data.get('effectiveness', {}).get('total', 0),
-                        'last_action_status': employee_data['last_action']['status'],
-                        'last_action_timestamp': datetime.fromtimestamp(employee_data['last_action']['timestamp']),
-                        'last_action_relative': employee_data['last_action']['relative'],
-                        'status_description': employee_data['status']['description'],
-                        'status_state': employee_data['status']['state'],
-                        'status_until': status_until,
-                    }
-                    
-                    # Get or create snapshot with full defaults
-                    snapshot_obj, created = DailyEmployeeSnapshot.objects.get_or_create(
-                        company=company,
-                        employee_id=employee_id,
-                        snapshot_date=snapshot_date,
-                        defaults=snapshot_defaults
-                    )
-                    
                     # If after 18:22 UTC or forced, update all fields
                     if not skip_snapshot:
                         for field, value in snapshot_defaults.items():
