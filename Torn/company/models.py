@@ -100,3 +100,31 @@ class DailyEmployeeSnapshot(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.employee_id}) - {self.snapshot_date}"
+
+
+class Stock(models.Model):
+    """Model to track company stock values over time"""
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)  # e.g., "Oil (Barrel)"
+    cost = models.BigIntegerField()  # Production cost
+    rrp = models.BigIntegerField()  # Recommended retail price
+    price = models.BigIntegerField()  # Current market price
+    in_stock = models.BigIntegerField()  # Current inventory
+    on_order = models.BigIntegerField()  # Quantity on order
+    created_amount = models.BigIntegerField()  # Total amount created
+    sold_amount = models.BigIntegerField()  # Total amount sold
+    sold_worth = models.BigIntegerField()  # Total worth of sold items
+    snapshot_date = models.DateField()  # Date this snapshot was taken
+    created_on = models.DateTimeField(auto_now_add=True)
+    modified_on = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['company', 'name', 'snapshot_date']
+        indexes = [
+            models.Index(fields=['company', 'snapshot_date']),
+            models.Index(fields=['snapshot_date']),
+        ]
+        ordering = ['-snapshot_date', 'name']
+
+    def __str__(self):
+        return f"{self.company.name} - {self.name} ({self.snapshot_date})"

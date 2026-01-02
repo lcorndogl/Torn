@@ -1,7 +1,7 @@
 import requests
 import environ
 from django.core.management.base import BaseCommand
-from company.models import Company, Employee, CurrentEmployee, DailyEmployeeSnapshot
+from company.models import Company, Employee, CurrentEmployee, DailyEmployeeSnapshot, Stock
 from datetime import datetime, time, timedelta
 
 # Initialize environment variables
@@ -65,13 +65,33 @@ class Command(BaseCommand):
                 ))
             self.stdout.write(f'Using normalized timestamp: {normalized_time}')
             
+            # For Stock: create/update snapshot after 18:00 UTC, otherwise update previous day
+            stock_snapshot_date = normalized_time.date()
+            if now_utc < time(18, 0) and not force_run:
+                stock_snapshot_date = stock_snapshot_date - timedelta(days=1)
+            elif force_run and now_utc < time(18, 0):
+                stock_snapshot_date = stock_snapshot_date - timedelta(days=1)
+            
             # Fetch the company tied to the key owner (no hardcoded company ID)
-            url = f'https://api.torn.com/company/?selections=profile,employees&key={api_key}&comment=FetchCompany'
-            response = requests.get(url)
-            data = response.json()
+            # Try to fetch with stock data; fall back to without stock if it fails
+            url = f'https://api.torn.com/company/?selections=profile,employees,stock&key={api_key}&comment=FetchCompany'
+            try:
+                response = requests.get(url)
+                response.raise_for_status()
+                data = response.json()
+                # Check if the response indicates an error
+                if 'error' in data:
+                    raise Exception(data.get('error', {}).get('error', 'Unknown error'))
+                self.stdout.write('Fetched company data with stock information')
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f'Failed to fetch with stock data ({e}); retrying without stock'))
+                url = f'https://api.torn.com/company/?selections=profile,employees&key={api_key}&comment=FetchCompany'
+                response = requests.get(url)
+                data = response.json()
 
             print("Top-level keys:", data.keys())
             print("Company keys:", data.get('company', {}).keys())
+            print("Stock data:", data.get('company_stock', {}))
 
             # Check if the company data exists
             if 'company' in data:
@@ -83,6 +103,47 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(self.style.WARNING('No company data found in the response; aborting fetch for this key'))
                 continue
+
+            # Process stock data if available
+            stock_data = data.get('company_stock', {})
+            if stock_data:
+                self.stdout.write(f'Found stock data for {len(stock_data)} item(s)')
+                for item_name, stock_info in stock_data.items():
+                    # Calculate created_amount based on yesterday's stock
+                    # created = sold_today + (in_stock_today - in_stock_yesterday)
+                    sold_today = stock_info.get('sold_amount', 0)
+                    in_stock_today = stock_info.get('in_stock', 0)
+                    
+                    yesterday_date = stock_snapshot_date - timedelta(days=1)
+                    yesterday_stock = Stock.objects.filter(
+                        company=company,
+                        name=item_name,
+                        snapshot_date=yesterday_date
+                    ).first()
+                    
+                    if yesterday_stock:
+                        in_stock_yesterday = yesterday_stock.in_stock
+                        created_amount = sold_today + (in_stock_today - in_stock_yesterday)
+                    else:
+                        # No yesterday data, can't calculate daily created
+                        created_amount = 0
+                    
+                    Stock.objects.update_or_create(
+                        company=company,
+                        name=item_name,
+                        snapshot_date=stock_snapshot_date,
+                        defaults={
+                            'cost': stock_info.get('cost', 0),
+                            'rrp': stock_info.get('rrp', 0),
+                            'price': stock_info.get('price', 0),
+                            'in_stock': in_stock_today,
+                            'on_order': stock_info.get('on_order', 0),
+                            'created_amount': created_amount,
+                            'sold_amount': sold_today,
+                            'sold_worth': stock_info.get('sold_worth', 0),
+                        }
+                    )
+                self.stdout.write(self.style.SUCCESS(f'Processed {len(stock_data)} stock item(s) for {stock_snapshot_date}'))
 
             # Check if the employees data exists
             if 'company_employees' in data and data['company_employees']:

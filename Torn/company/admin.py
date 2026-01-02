@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Company, Employee, CurrentEmployee, DailyEmployeeSnapshot
+from .models import Company, Employee, CurrentEmployee, DailyEmployeeSnapshot, Stock
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
@@ -143,3 +143,63 @@ class DailyEmployeeSnapshotAdmin(admin.ModelAdmin):
         return "Not available"
     formatted_wage.admin_order_field = 'wage'
     formatted_wage.short_description = 'Wage'
+
+
+@admin.register(Stock)
+class StockAdmin(admin.ModelAdmin):
+    list_display = ('snapshot_date', 'company_name', 'name', 'formatted_price', 
+                    'formatted_created_amount', 'formatted_sold_amount', 'formatted_in_stock', 'formatted_sold_worth')
+    list_filter = ('snapshot_date', 'company', 'name')
+    search_fields = ('name', 'company__name')
+    readonly_fields = ('created_on', 'modified_on')
+    ordering = ['-snapshot_date', 'company', 'name']
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('company', 'name', 'snapshot_date')
+        }),
+        ('Pricing', {
+            'fields': ('cost', 'rrp', 'price'),
+        }),
+        ('Production & Sales', {
+            'fields': ('created_amount', 'sold_amount', 'sold_worth'),
+        }),
+        ('Inventory', {
+            'fields': ('in_stock', 'on_order'),
+        }),
+        ('Metadata', {
+            'fields': ('created_on', 'modified_on'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def company_name(self, obj):
+        return obj.company.name
+    company_name.admin_order_field = 'company'
+    company_name.short_description = 'Company Name'
+
+    def formatted_price(self, obj):
+        return f"${obj.price:,}"
+    formatted_price.admin_order_field = 'price'
+    formatted_price.short_description = 'Price'
+
+    def formatted_created_amount(self, obj):
+        return f"{obj.created_amount:,}"
+    formatted_created_amount.admin_order_field = 'created_amount'
+    formatted_created_amount.short_description = 'Created'
+
+    def formatted_sold_amount(self, obj):
+        return f"{obj.sold_amount:,}"
+    formatted_sold_amount.admin_order_field = 'sold_amount'
+    formatted_sold_amount.short_description = 'Sold'
+
+    def formatted_in_stock(self, obj):
+        return f"{obj.in_stock:,}"
+    formatted_in_stock.admin_order_field = 'in_stock'
+    formatted_in_stock.short_description = 'In Stock'
+
+    def formatted_sold_worth(self, obj):
+        return f"${obj.sold_worth:,}"
+    formatted_sold_worth.admin_order_field = 'sold_worth'
+    formatted_sold_worth.short_description = 'Sold Worth'
+
