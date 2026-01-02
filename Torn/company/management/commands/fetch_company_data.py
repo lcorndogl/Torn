@@ -1,7 +1,7 @@
 import requests
 import environ
 from django.core.management.base import BaseCommand
-from company.models import Company, Employee, CurrentEmployee, DailyEmployeeSnapshot, Stock
+from company.models import Company, Employee, CurrentEmployee, DailyEmployeeSnapshot, Sale
 from datetime import datetime, time, timedelta
 
 # Initialize environment variables
@@ -65,16 +65,18 @@ class Command(BaseCommand):
                 ))
             self.stdout.write(f'Using normalized timestamp: {normalized_time}')
             
-            # For Stock: create/update snapshot after 18:00 UTC, otherwise update previous day
+            # For Stock: only process after 18:00 UTC
             stock_snapshot_date = normalized_time.date()
+            skip_stock = False
             if now_utc < time(18, 0) and not force_run:
-                stock_snapshot_date = stock_snapshot_date - timedelta(days=1)
-            elif force_run and now_utc < time(18, 0):
-                stock_snapshot_date = stock_snapshot_date - timedelta(days=1)
+                skip_stock = True
+                self.stdout.write(self.style.WARNING(
+                    f"Current UTC time {now_utc.strftime('%H:%M:%S')} is before 18:00; skipping stock data processing"
+                ))
             
             # Fetch the company tied to the key owner (no hardcoded company ID)
             # Try to fetch with stock data; fall back to without stock if it fails
-            url = f'https://api.torn.com/company/?selections=profile,employees,stock&key={api_key}&comment=FetchCompany'
+            url = f'https://api.torn.com/company/?selections=profile,employees,stock,detailed&key={api_key}&comment=FetchCompany'
             try:
                 response = requests.get(url)
                 response.raise_for_status()
@@ -92,6 +94,7 @@ class Command(BaseCommand):
             print("Top-level keys:", data.keys())
             print("Company keys:", data.get('company', {}).keys())
             print("Stock data:", data.get('company_stock', {}))
+            print("Detailed data:", data.get('company_detailed', {}))
 
             # Check if the company data exists
             if 'company' in data:
@@ -106,7 +109,9 @@ class Command(BaseCommand):
 
             # Process stock data if available
             stock_data = data.get('company_stock', {})
-            if stock_data:
+            detailed_data = data.get('company_detailed', {})
+            
+            if not skip_stock and stock_data:
                 self.stdout.write(f'Found stock data for {len(stock_data)} item(s)')
                 for item_name, stock_info in stock_data.items():
                     # Calculate created_amount based on yesterday's stock
@@ -115,24 +120,26 @@ class Command(BaseCommand):
                     in_stock_today = stock_info.get('in_stock', 0)
                     
                     yesterday_date = stock_snapshot_date - timedelta(days=1)
-                    yesterday_stock = Stock.objects.filter(
+                    yesterday_sales = Sale.objects.filter(
                         company=company,
-                        name=item_name,
+                        product_name=item_name,
                         snapshot_date=yesterday_date
                     ).first()
                     
-                    if yesterday_stock:
-                        in_stock_yesterday = yesterday_stock.in_stock
+                    if yesterday_sales and yesterday_sales.in_stock is not None:
+                        in_stock_yesterday = yesterday_sales.in_stock
                         created_amount = sold_today + (in_stock_today - in_stock_yesterday)
                     else:
                         # No yesterday data, can't calculate daily created
                         created_amount = 0
                     
-                    Stock.objects.update_or_create(
+                    # Get or create sales record for this product
+                    upgrades = detailed_data.get('upgrades', {})
+                    Sale.objects.update_or_create(
                         company=company,
-                        name=item_name,
                         snapshot_date=stock_snapshot_date,
                         defaults={
+                            'product_name': item_name,
                             'cost': stock_info.get('cost', 0),
                             'rrp': stock_info.get('rrp', 0),
                             'price': stock_info.get('price', 0),
@@ -141,9 +148,38 @@ class Command(BaseCommand):
                             'created_amount': created_amount,
                             'sold_amount': sold_today,
                             'sold_worth': stock_info.get('sold_worth', 0),
+                            'popularity': detailed_data.get('popularity'),
+                            'efficiency': detailed_data.get('efficiency'),
+                            'environment': detailed_data.get('environment'),
+                            'advertising_budget': detailed_data.get('advertising_budget'),
+                            'trains_available': detailed_data.get('trains_available'),
+                            'company_size': upgrades.get('company_size'),
+                            'staffroom_size': upgrades.get('staffroom_size'),
+                            'storage_size': upgrades.get('storage_size'),
+                            'storage_space': upgrades.get('storage_space'),
                         }
                     )
+                    
                 self.stdout.write(self.style.SUCCESS(f'Processed {len(stock_data)} stock item(s) for {stock_snapshot_date}'))
+            elif not skip_stock and detailed_data:
+                # Even without stock data, record detailed company metrics if available
+                upgrades = detailed_data.get('upgrades', {})
+                Sale.objects.update_or_create(
+                    company=company,
+                    snapshot_date=stock_snapshot_date,
+                    defaults={
+                        'popularity': detailed_data.get('popularity'),
+                        'efficiency': detailed_data.get('efficiency'),
+                        'environment': detailed_data.get('environment'),
+                        'advertising_budget': detailed_data.get('advertising_budget'),
+                        'trains_available': detailed_data.get('trains_available'),
+                        'company_size': upgrades.get('company_size'),
+                        'staffroom_size': upgrades.get('staffroom_size'),
+                        'storage_size': upgrades.get('storage_size'),
+                        'storage_space': upgrades.get('storage_space'),
+                    }
+                )
+                self.stdout.write(self.style.SUCCESS(f'Recorded company metrics for {stock_snapshot_date}'))
 
             # Check if the employees data exists
             if 'company_employees' in data and data['company_employees']:

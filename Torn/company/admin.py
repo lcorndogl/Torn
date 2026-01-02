@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Company, Employee, CurrentEmployee, DailyEmployeeSnapshot, Stock
+from .models import Company, Employee, CurrentEmployee, DailyEmployeeSnapshot, Sale
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
@@ -145,27 +145,31 @@ class DailyEmployeeSnapshotAdmin(admin.ModelAdmin):
     formatted_wage.short_description = 'Wage'
 
 
-@admin.register(Stock)
-class StockAdmin(admin.ModelAdmin):
-    list_display = ('snapshot_date', 'company_name', 'name', 'formatted_price', 
-                    'formatted_created_amount', 'formatted_sold_amount', 'formatted_in_stock', 'formatted_sold_worth')
-    list_filter = ('snapshot_date', 'company', 'name')
-    search_fields = ('name', 'company__name')
+@admin.register(Sale)
+class SaleAdmin(admin.ModelAdmin):
+    list_display = ('snapshot_date', 'company_name', 'product_name', 'formatted_price',
+                    'formatted_created', 'formatted_sold', 'formatted_in_stock', 'formatted_sold_worth', 'efficiency', 'environment')
+    list_filter = ('snapshot_date', 'company', 'product_name')
+    search_fields = ('product_name', 'company__name')
     readonly_fields = ('created_on', 'modified_on')
-    ordering = ['-snapshot_date', 'company', 'name']
+    ordering = ['-snapshot_date', 'company']
 
     fieldsets = (
         ('Basic Information', {
-            'fields': ('company', 'name', 'snapshot_date')
+            'fields': ('company', 'snapshot_date', 'product_name')
         }),
-        ('Pricing', {
-            'fields': ('cost', 'rrp', 'price'),
+        ('Pricing & Inventory', {
+            'fields': ('cost', 'rrp', 'price', 'in_stock', 'on_order'),
         }),
         ('Production & Sales', {
             'fields': ('created_amount', 'sold_amount', 'sold_worth'),
         }),
-        ('Inventory', {
-            'fields': ('in_stock', 'on_order'),
+        ('Company Metrics', {
+            'fields': ('popularity', 'efficiency', 'environment', 'advertising_budget', 'trains_available'),
+        }),
+        ('Upgrades', {
+            'fields': ('company_size', 'staffroom_size', 'storage_size', 'storage_space'),
+            'classes': ('collapse',)
         }),
         ('Metadata', {
             'fields': ('created_on', 'modified_on'),
@@ -179,27 +183,38 @@ class StockAdmin(admin.ModelAdmin):
     company_name.short_description = 'Company Name'
 
     def formatted_price(self, obj):
-        return f"${obj.price:,}"
+        if obj.price is not None:
+            return f"${obj.price:,}"
+        return "-"
     formatted_price.admin_order_field = 'price'
     formatted_price.short_description = 'Price'
 
-    def formatted_created_amount(self, obj):
-        return f"{obj.created_amount:,}"
-    formatted_created_amount.admin_order_field = 'created_amount'
-    formatted_created_amount.short_description = 'Created'
+    def formatted_created(self, obj):
+        if obj.created_amount is not None:
+            return f"{obj.created_amount:,}"
+        return "-"
+    formatted_created.admin_order_field = 'created_amount'
+    formatted_created.short_description = 'Created'
 
-    def formatted_sold_amount(self, obj):
-        return f"{obj.sold_amount:,}"
-    formatted_sold_amount.admin_order_field = 'sold_amount'
-    formatted_sold_amount.short_description = 'Sold'
+    def formatted_sold(self, obj):
+        if obj.sold_amount is not None:
+            return f"{obj.sold_amount:,}"
+        return "-"
+    formatted_sold.admin_order_field = 'sold_amount'
+    formatted_sold.short_description = 'Sold'
 
     def formatted_in_stock(self, obj):
-        return f"{obj.in_stock:,}"
+        if obj.in_stock is not None:
+            return f"{obj.in_stock:,}"
+        return "-"
     formatted_in_stock.admin_order_field = 'in_stock'
     formatted_in_stock.short_description = 'In Stock'
 
     def formatted_sold_worth(self, obj):
-        return f"${obj.sold_worth:,}"
+        if obj.sold_worth is not None:
+            return f"${obj.sold_worth:,}"
+        return "-"
     formatted_sold_worth.admin_order_field = 'sold_worth'
     formatted_sold_worth.short_description = 'Sold Worth'
+
 

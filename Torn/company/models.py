@@ -102,29 +102,45 @@ class DailyEmployeeSnapshot(models.Model):
         return f"{self.name} ({self.employee_id}) - {self.snapshot_date}"
 
 
-class Stock(models.Model):
-    """Model to track company stock values over time"""
+class Sale(models.Model):
+    """Model to track daily company sales metrics, stock data, and efficiency"""
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255)  # e.g., "Oil (Barrel)"
-    cost = models.BigIntegerField()  # Production cost
-    rrp = models.BigIntegerField()  # Recommended retail price
-    price = models.BigIntegerField()  # Current market price
-    in_stock = models.BigIntegerField()  # Current inventory
-    on_order = models.BigIntegerField()  # Quantity on order
-    created_amount = models.BigIntegerField()  # Total amount created
-    sold_amount = models.BigIntegerField()  # Total amount sold
-    sold_worth = models.BigIntegerField()  # Total worth of sold items
     snapshot_date = models.DateField()  # Date this snapshot was taken
+    
+    # Stock/Product Data
+    product_name = models.CharField(max_length=255, null=True, blank=True)  # e.g., "Oil (Barrel)"
+    cost = models.BigIntegerField(null=True, blank=True)  # Production cost
+    rrp = models.BigIntegerField(null=True, blank=True)  # Recommended retail price
+    price = models.BigIntegerField(null=True, blank=True)  # Current market price
+    in_stock = models.BigIntegerField(null=True, blank=True)  # Current inventory
+    on_order = models.BigIntegerField(null=True, blank=True)  # Quantity on order
+    created_amount = models.BigIntegerField(null=True, blank=True)  # Amount created today
+    sold_amount = models.BigIntegerField(null=True, blank=True)  # Amount sold today
+    sold_worth = models.BigIntegerField(null=True, blank=True)  # Revenue from sales
+    
+    # Company Metrics (from company_detailed)
+    popularity = models.IntegerField(null=True, blank=True)
+    efficiency = models.IntegerField(null=True, blank=True)
+    environment = models.IntegerField(null=True, blank=True)
+    advertising_budget = models.BigIntegerField(null=True, blank=True)
+    trains_available = models.IntegerField(null=True, blank=True)
+    
+    # Upgrades (stored as individual fields)
+    company_size = models.IntegerField(null=True, blank=True)
+    staffroom_size = models.CharField(max_length=255, null=True, blank=True)
+    storage_size = models.CharField(max_length=255, null=True, blank=True)
+    storage_space = models.BigIntegerField(null=True, blank=True)
+    
     created_on = models.DateTimeField(auto_now_add=True)
     modified_on = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ['company', 'name', 'snapshot_date']
+        unique_together = ['company', 'snapshot_date']
         indexes = [
             models.Index(fields=['company', 'snapshot_date']),
             models.Index(fields=['snapshot_date']),
         ]
-        ordering = ['-snapshot_date', 'name']
+        ordering = ['-snapshot_date']
 
     def __str__(self):
-        return f"{self.company.name} - {self.name} ({self.snapshot_date})"
+        return f"{self.company.name} - {self.snapshot_date}"
