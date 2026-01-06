@@ -258,6 +258,37 @@ class Command(BaseCommand):
                                 **employee_defaults
                             )
 
+                    # Create or update DailyEmployeeSnapshot record
+                    snapshot_defaults = {
+                        'name': employee_data['name'],
+                        'position': employee_data['position'],
+                        'wage': wage,
+                        'manual_labour': employee_data.get('manual_labor', 0),
+                        'intelligence': employee_data.get('intelligence', 0),
+                        'endurance': employee_data.get('endurance', 0),
+                        'effectiveness_working_stats': employee_data.get('effectiveness', {}).get('working_stats', 0),
+                        'effectiveness_settled_in': employee_data.get('effectiveness', {}).get('settled_in', 0),
+                        'effectiveness_merits': employee_data.get('effectiveness', {}).get('merits', 0),
+                        'effectiveness_director_education': employee_data.get('effectiveness', {}).get('director_education', 0),
+                        'effectiveness_management': employee_data.get('effectiveness', {}).get('management', 0),
+                        'effectiveness_inactivity': employee_data.get('effectiveness', {}).get('inactivity', 0),
+                        'effectiveness_addiction': employee_data.get('effectiveness', {}).get('addiction', 0),
+                        'effectiveness_total': employee_data.get('effectiveness', {}).get('total', 0),
+                        'last_action_status': employee_data['last_action']['status'],
+                        'last_action_timestamp': datetime.fromtimestamp(employee_data['last_action']['timestamp']),
+                        'last_action_relative': employee_data['last_action']['relative'],
+                        'status_description': employee_data['status']['description'],
+                        'status_state': employee_data['status']['state'],
+                        'status_until': status_until,
+                    }
+                    
+                    DailyEmployeeSnapshot.objects.update_or_create(
+                        company=company,
+                        employee_id=employee_id,
+                        snapshot_date=snapshot_date,
+                        defaults=snapshot_defaults
+                    )
+
                     # Create or update CurrentEmployee record
                     CurrentEmployee.objects.update_or_create(
                         user_id=employee_id,
