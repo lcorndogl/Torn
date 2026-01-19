@@ -1,9 +1,10 @@
 from django.shortcuts import render
-from .models import Company, Employee, DailyEmployeeSnapshot, CurrentEmployee
+from .models import Company, Employee, DailyEmployeeSnapshot, CurrentEmployee, Sale
 import json
 from django.utils.safestring import mark_safe
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils import timezone
+from django.db.models import Q
 
 def company_list(request):
     companies = Company.objects.all()
@@ -172,4 +173,126 @@ def employees(request):
         'employee_data_json': employee_data_json,
         'available_companies': available_companies,
         'selected_company_id': target_company_id
+    })
+
+
+def daily_sales_comparison(request):
+    """
+    Display daily sales metrics for both companies side-by-side (Polar Caps and Cornettow Caps)
+    with both individual and combined values for each day
+    """
+    
+    # Get all companies with sales data
+    companies = Company.objects.filter(sale__isnull=False).distinct().order_by('name')
+    
+    if not companies.exists():
+        return render(request, 'company/daily_sales_comparison.html', {
+            'error': 'No sales data available',
+            'companies': [],
+            'sales_data': []
+        })
+    
+    # Get date range from request
+    days_back = request.GET.get('days', 30)
+    try:
+        days_back = int(days_back)
+    except (ValueError, TypeError):
+        days_back = 30
+    
+    start_date = timezone.now().date() - timedelta(days=days_back)
+    
+    # Get sales data for all companies
+    sales = Sale.objects.filter(
+        snapshot_date__gte=start_date
+    ).order_by('-snapshot_date')
+    
+    # Group sales by date and organize by company
+    sales_by_date = {}
+    company_ids = set()
+    
+    for sale in sales:
+        date_key = sale.snapshot_date
+        company_ids.add(sale.company_id)
+        
+        if date_key not in sales_by_date:
+            sales_by_date[date_key] = {}
+        
+        # Calculate derived metrics
+        daily_income = sale.sold_worth or 0
+        sold_amount = sale.sold_amount or 0
+        created_amount = sale.created_amount or 0
+        cost = sale.cost or 0
+        
+        # Calculate daily profit (revenue - cost)
+        daily_profit = daily_income - cost if cost else daily_income
+        
+        # Calculate profit margin percentage
+        profit_margin = ((daily_profit / daily_income) * 100) if daily_income > 0 else 0
+        
+        # Calculate value generated (using sold_worth as proxy)
+        value_generated = daily_income
+        
+        sales_by_date[date_key][sale.company_id] = {
+            'company_name': sale.company.name,
+            'daily_income': daily_income,
+            'price': sale.price or 0,
+            'in_stock': sale.in_stock or 0,
+            'sold_amount': sold_amount,
+            'created_amount': created_amount,
+            'popularity': sale.popularity or 0,
+            'efficiency': sale.efficiency or 0,
+            'environment': sale.environment or 0,
+            'advertising_budget': sale.advertising_budget or 0,
+            'daily_profit': daily_profit,
+            'profit_margin': profit_margin,
+            'value_generated': value_generated,
+        }
+    
+    # Build combined data structure with both individual and totals
+    combined_data = []
+    for date_key in sorted(sales_by_date.keys(), reverse=True):
+        date_entry = {
+            'date': date_key,
+            'companies': {},
+            'totals': {
+                'daily_income': 0,
+                'sold_amount': 0,
+                'created_amount': 0,
+                'in_stock': 0,
+                'daily_profit': 0,
+                'value_generated': 0,
+            }
+        }
+        
+        # Add individual company data and calculate totals
+        for company_id, company_data in sales_by_date[date_key].items():
+            date_entry['companies'][company_id] = company_data
+            date_entry['totals']['daily_income'] += company_data['daily_income']
+            date_entry['totals']['sold_amount'] += company_data['sold_amount']
+            date_entry['totals']['created_amount'] += company_data['created_amount']
+            date_entry['totals']['in_stock'] += company_data['in_stock']
+            date_entry['totals']['daily_profit'] += company_data['daily_profit']
+            date_entry['totals']['value_generated'] += company_data['value_generated']
+        
+        combined_data.append(date_entry)
+    
+    # Get all unique company IDs from database for complete list
+    all_companies = list(companies)
+    company_map = {c.company_id: c.name for c in all_companies}
+    
+    # Prepare JSON data for frontend
+    data_json = mark_safe(json.dumps({
+        'data': combined_data,
+        'company_map': company_map,
+        'days': days_back
+    }, default=str))
+    
+    return render(request, 'company/daily_sales_comparison.html', {
+        'companies': all_companies,
+        'combined_data': combined_data,
+        'company_map': company_map,
+        'data_json': data_json,
+        'days_back': days_back,
+        'start_date': start_date,
+        'end_date': timezone.now().date(),
     })

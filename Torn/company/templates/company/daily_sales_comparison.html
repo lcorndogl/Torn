@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load company_filters %}
+
+{% block title %}Daily Sales Comparison{% endblock %}
+
+{% block content %}
+<style>
+    .sales-container {
+        background-color: #1f1f1f;
+        color: #f6c344;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .controls-section {
+        background-color: #2a2a2a;
+        border: 1px solid #f6c344;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .date-input, .days-select {
+        background-color: #1f1f1f !important;
+        color: #f6c344 !important;
+        border: 1px solid #f6c344 !important;
+    }
+    
+    .date-input:focus, .days-select:focus {
+        background-color: #1f1f1f !important;
+        color: #f6c344 !important;
+        border-color: #ffd700 !important;
+        box-shadow: 0 0 0 0.2rem rgba(246, 195, 68, 0.25) !important;
+    }
+    
+    .date-input option, .days-select option {
+        background-color: #1f1f1f;
+        color: #f6c344;
+    }
+    
+    .sales-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+    
+    .sales-table th {
+        background-color: #2a2a2a;
+        color: #f6c344;
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 2px solid #f6c344;
+        font-weight: 600;
+    }
+    
+    .sales-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #444;
+    }
+    
+    .sales-table tr:hover {
+        background-color: #2a2a2a;
+    }
+    
+    .date-row {
+        background-color: #262626;
+        font-weight: 600;
+        color: #fff;
+    }
+    
+    .date-cell {
+        background-color: #262626;
+        color: #f6c344;
+        font-weight: 600;
+        text-align: center;
+        font-size: 0.9rem;
+        vertical-align: middle;
+        padding: 1rem 0.5rem !important;
+    }
+    
+    .company-row {
+        background-color: #1f1f1f;
+        padding-left: 1.5rem;
+    }
+    
+    .totals-row {
+        background-color: #333;
+        font-weight: 600;
+        color: #ffd700;
+        border-top: 2px solid #f6c344;
+        border-bottom: 2px solid #f6c344;
+    }
+    
+    .number-cell {
+        text-align: right;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .company-name {
+        font-weight: 500;
+        color: #f6c344;
+    }
+    
+    .polar-caps {
+        color: #87ceeb;
+    }
+    
+    .cornettow-caps {
+        color: #90ee90;
+    }
+    
+    .control-btn {
+        background-color: #f6c344;
+        color: #1f1f1f;
+        border: none;
+        padding: 0.5rem 1.5rem;
+        border-radius: 0.25rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .control-btn:hover {
+        background-color: #ffd700;
+        transform: scale(1.05);
+    }
+    
+    .control-btn:active {
+        transform: scale(0.95);
+    }
+    
+    .info-section {
+        background-color: #2a2a2a;
+        border-left: 3px solid #f6c344;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-radius: 0.25rem;
+    }
+    
+    .info-section p {
+        margin: 0.25rem 0;
+        font-size: 0.95rem;
+    }
+    
+    .controls-row {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .control-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .sales-table {
+            font-size: 0.8rem;
+        }
+        
+        .sales-table th,
+        .sales-table td {
+            padding: 0.5rem;
+        }
+        
+        .controls-row {
+            flex-direction: column;
+        }
+        
+        .control-group {
+            width: 100%;
+        }
+        
+        .control-group input,
+        .control-group select {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="container-fluid sales-container">
+    <h2 class="mb-4 text-warning">Daily Sales Comparison</h2>
+    
+    {% if error %}
+        <div class="alert alert-danger" role="alert">
+            {{ error }}
+        </div>
+    {% endif %}
+    
+    <!-- Controls Section -->
+    <div class="controls-section">
+        <h5 class="mb-3 text-warning">Filter Options</h5>
+        <div class="controls-row">
+            <div class="control-group">
+                <label for="daysSelect" class="form-label mb-0">Last N Days:</label>
+                <select id="daysSelect" class="form-select days-select" style="max-width: 150px;">
+                    <option value="7" {% if days_back == 7 %}selected{% endif %}>Last 7 Days</option>
+                    <option value="14" {% if days_back == 14 %}selected{% endif %}>Last 14 Days</option>
+                    <option value="30" {% if days_back == 30 %}selected{% endif %}>Last 30 Days</option>
+                    <option value="60" {% if days_back == 60 %}selected{% endif %}>Last 60 Days</option>
+                    <option value="90" {% if days_back == 90 %}selected{% endif %}>Last 90 Days</option>
+                </select>
+            </div>
+            <button class="control-btn" id="refreshBtn">↻ Refresh</button>
+        </div>
+    </div>
+    
+    <!-- Info Section -->
+    <div class="info-section">
+        <p><strong>Date Range:</strong> {{ start_date }} to {{ end_date }}</p>
+        <p><strong>Total Entries:</strong> {{ combined_data|length }} days</p>
+        <p><strong>Companies:</strong> {% for company in companies %}{{ company.name }}{{ fornotlast }}, {% endfor %}</p>
+    </div>
+    
+    <!-- Sales Data Table -->
+    {% if combined_data %}
+        <div style="overflow-x: auto;">
+            <table class="sales-table">
+                <thead>
+                    <tr>
+                        <th style="width: 14%;">Date</th>
+                        <th style="width: 14%;">Company</th>
+                        <th class="number-cell" style="width: 11%;">Daily Income</th>
+                        <th class="number-cell" style="width: 10%;">Price</th>
+                        <th class="number-cell" style="width: 11%;">In Stock</th>
+                        <th class="number-cell" style="width: 10%;">Sold</th>
+                        <th class="number-cell" style="width: 11%;">Produced</th>
+                        <th class="number-cell" style="width: 8%;">Pop</th>
+                        <th class="number-cell" style="width: 8%;">Eff</th>
+                        <th class="number-cell" style="width: 8%;">Env</th>
+                        <th class="number-cell" style="width: 11%;">Ad Budget</th>
+                        <th class="number-cell" style="width: 11%;">Daily Profit</th>
+                        <th class="number-cell" style="width: 11%;">Profit %</th>
+                        <th class="number-cell" style="width: 11%;">Value Gen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day_data in combined_data %}
+                        {% for company_id, company_sales in day_data.companies.items %}
+                            <tr class="company-row">
+                                {% if forloop.first %}
+                                    <!-- Date cell only on first company row -->
+                                    <td class="date-cell" rowspan="{{ day_data.companies|length|add:1 }}">📅<br>{{ day_data.date|date:"d/m/Y" }}</td>
+                                {% endif %}
+                                <td class="company-name">
+                                    {% if "Polar" in company_sales.company_name %}
+                                        <span class="polar-caps">{{ company_sales.company_name }}</span>
+                                    {% else %}
+                                        <span class="cornettow-caps">{{ company_sales.company_name }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="number-cell">{{ company_sales.daily_income|currency }}</td>
+                                <td class="number-cell">{{ company_sales.price|currency }}</td>
+                                <td class="number-cell">{{ company_sales.in_stock|floatformat:0 }}</td>
+                                <td class="number-cell">{{ company_sales.sold_amount|floatformat:0 }}</td>
+                                <td class="number-cell">{{ company_sales.created_amount|floatformat:0 }}</td>
+                                <td class="number-cell">{{ company_sales.popularity }}%</td>
+                                <td class="number-cell">{{ company_sales.efficiency }}%</td>
+                                <td class="number-cell">{{ company_sales.environment }}%</td>
+                                <td class="number-cell">{{ company_sales.advertising_budget|currency }}</td>
+                                <td class="number-cell">{{ company_sales.daily_profit|currency }}</td>
+                                <td class="number-cell">{{ company_sales.profit_margin|floatformat:2 }}%</td>
+                                <td class="number-cell">{{ company_sales.value_generated|currency }}</td>
+                            </tr>
+                        {% endfor %}
+                        
+                        <!-- Combined Totals Row -->
+                        <tr class="totals-row">
+                            <td colspan="1">💰 Combined</td>
+                            <td class="number-cell">{{ day_data.totals.daily_income|currency }}</td>
+                            <td class="number-cell">—</td>
+                            <td class="number-cell">{{ day_data.totals.in_stock|floatformat:0 }}</td>
+                            <td class="number-cell">{{ day_data.totals.sold_amount|floatformat:0 }}</td>
+                            <td class="number-cell">{{ day_data.totals.created_amount|floatformat:0 }}</td>
+                            <td colspan="3"></td>
+                            <td class="number-cell">—</td>
+                            <td class="number-cell">{{ day_data.totals.daily_profit|currency }}</td>
+                            <td class="number-cell">—</td>
+                            <td class="number-cell">{{ day_data.totals.value_generated|currency }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            No sales data available for the selected date range.
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    document.getElementById('daysSelect').addEventListener('change', function() {
+        const days = this.value;
+        window.location.href = '?days=' + days;
+    });
+    
+    document.getElementById('refreshBtn').addEventListener('click', function() {
+        location.reload();
+    });
+</script>
+
+{% endblock %}
