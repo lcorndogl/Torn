@@ -271,8 +271,9 @@ def daily_sales_comparison(request):
             }
         }
         
-        # Add individual company data and calculate totals
-        for company_id, company_data in sales_by_date[date_key].items():
+        # Add individual company data and calculate totals (sorted by company ID for consistent ordering)
+        for company_id in sorted(sales_by_date[date_key].keys()):
+            company_data = sales_by_date[date_key][company_id]
             date_entry['companies'][company_id] = company_data
             date_entry['totals']['daily_income'] += company_data['daily_income']
             date_entry['totals']['sold_amount'] += company_data['sold_amount']
