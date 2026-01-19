@@ -338,6 +338,12 @@
         rows.forEach(row => {
             const rowType = row.getAttribute('data-row-type');
             
+            // Always show weekly summaries regardless of view mode
+            if (rowType === 'weekly') {
+                row.style.display = '';
+                return;
+            }
+            
             if (viewMode === 'all') {
                 row.style.display = '';
             } else if (viewMode === 'individual' && rowType === 'individual') {
