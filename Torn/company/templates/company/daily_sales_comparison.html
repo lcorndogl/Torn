@@ -95,6 +95,18 @@
         border-bottom: 2px solid #f6c344;
     }
     
+    .weekly-summary-row {
+        background-color: #4a2c2c;
+        font-weight: 700;
+        color: #ff9966;
+        border: 3px solid #ff6633;
+        font-size: 1.05rem;
+    }
+    
+    .weekly-summary-row td {
+        padding: 1rem 0.75rem !important;
+    }
+    
     .number-cell {
         text-align: right;
         font-family: 'Courier New', monospace;
@@ -235,7 +247,7 @@
                     <tr>
                         <th style="width: 8%;">Date</th>
                         <th style="width: 10%;">Company</th>
-                        <th class="number-cell" style="width: 8%;">Daily<br>Income</th>
+                        <th class="number-cell" style="width: 8%;">Income</th>
                         <th class="number-cell" style="width: 7%;">Price</th>
                         <th class="number-cell" style="width: 7%;">In<br>Stock</th>
                         <th class="number-cell" style="width: 7%;">Sold</th>
@@ -249,6 +261,22 @@
                 </thead>
                 <tbody>
                     {% for day_data in combined_data %}
+                        {% if day_data.is_weekly_summary %}
+                            <!-- Weekly Summary Row -->
+                            <tr class="weekly-summary-row" data-row-type="weekly">
+                                <td colspan="2" style="text-align: center;">📅 Week {{ day_data.week_start|date:"d/m/Y" }} - {{ day_data.week_end|date:"d/m/Y" }}</td>
+                                <td class="number-cell">{{ day_data.totals.daily_income|currency }}</td>
+                                <td class="number-cell">—</td>
+                                <td class="number-cell">{{ day_data.totals.in_stock|floatformat:0 }}</td>
+                                <td class="number-cell">{{ day_data.totals.sold_amount|floatformat:0 }}</td>
+                                <td class="number-cell">{{ day_data.totals.created_amount|floatformat:0 }}</td>
+                                <td class="number-cell">—</td>
+                                <td class="number-cell">{{ day_data.totals.advertising_budget|currency }}</td>
+                                <td class="number-cell">{{ day_data.totals.wages|currency }}</td>
+                                <td class="number-cell">{{ day_data.totals.daily_profit|currency }}</td>
+                                <td class="number-cell">{{ day_data.totals.value_generated|currency }}</td>
+                            </tr>
+                        {% else %}
                         {% for company_id, company_sales in day_data.companies.items %}
                             <tr class="company-row" data-row-type="individual">
                                 {% if forloop.first %}
@@ -285,11 +313,12 @@
                             <td class="number-cell">{{ day_data.totals.sold_amount|floatformat:0 }}</td>
                             <td class="number-cell">{{ day_data.totals.created_amount|floatformat:0 }}</td>
                             <td class="number-cell">—</td>
-                            <td class="number-cell">—</td>
+                            <td class="number-cell">{{ day_data.totals.advertising_budget|currency }}</td>
                             <td class="number-cell">{{ day_data.totals.wages|currency }}</td>
                             <td class="number-cell">{{ day_data.totals.daily_profit|currency }}</td>
                             <td class="number-cell">{{ day_data.totals.value_generated|currency }}</td>
                         </tr>
+                        {% endif %}
                     {% endfor %}
                 </tbody>
             </table>

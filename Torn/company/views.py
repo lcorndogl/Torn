@@ -256,6 +256,7 @@ def daily_sales_comparison(request):
     
     # Build combined data structure with both individual and totals
     combined_data = []
+    
     for date_key in sorted(sales_by_date.keys(), reverse=True):
         date_entry = {
             'date': date_key,
@@ -265,6 +266,7 @@ def daily_sales_comparison(request):
                 'sold_amount': 0,
                 'created_amount': 0,
                 'in_stock': 0,
+                'advertising_budget': 0,
                 'wages': 0,
                 'daily_profit': 0,
                 'value_generated': 0,
@@ -279,9 +281,53 @@ def daily_sales_comparison(request):
             date_entry['totals']['sold_amount'] += company_data['sold_amount']
             date_entry['totals']['created_amount'] += company_data['created_amount']
             date_entry['totals']['in_stock'] += company_data['in_stock']
+            date_entry['totals']['advertising_budget'] += company_data['advertising_budget']
             date_entry['totals']['wages'] += company_data['wages']
             date_entry['totals']['daily_profit'] += company_data['daily_profit']
             date_entry['totals']['value_generated'] += company_data['value_generated']
+        
+        # Check if this is a Sunday (weekday() returns 6 for Sunday)
+        is_sunday = date_key.weekday() == 6
+        
+        # If it's Sunday, calculate weekly summary for the past 7 days (this Sunday plus previous 6 days)
+        if is_sunday:
+            week_totals = {
+                'daily_income': 0,
+                'sold_amount': 0,
+                'created_amount': 0,
+                'in_stock': 0,
+                'advertising_budget': 0,
+                'wages': 0,
+                'daily_profit': 0,
+                'value_generated': 0,
+            }
+            
+            # Sum up the current day and previous 6 days (Monday to Sunday)
+            for day_offset in range(7):
+                check_date = date_key - timedelta(days=day_offset)
+                if check_date in sales_by_date:
+                    for company_id in sales_by_date[check_date]:
+                        day_data = sales_by_date[check_date][company_id]
+                        week_totals['daily_income'] += day_data['daily_income']
+                        week_totals['sold_amount'] += day_data['sold_amount']
+                        week_totals['created_amount'] += day_data['created_amount']
+                        week_totals['in_stock'] += day_data['in_stock']
+                        week_totals['advertising_budget'] += day_data['advertising_budget']
+                        week_totals['wages'] += day_data['wages']
+                        week_totals['daily_profit'] += day_data['daily_profit']
+                        week_totals['value_generated'] += day_data['value_generated']
+            
+            # Add weekly summary if we have data
+            if any(v > 0 for v in week_totals.values()):
+                week_start = date_key - timedelta(days=6)  # Monday
+                week_end = date_key  # Sunday
+                
+                combined_data.append({
+                    'is_weekly_summary': True,
+                    'week_start': week_start,
+                    'week_end': week_end,
+                    'totals': week_totals
+                })
         
         combined_data.append(date_entry)
     
