@@ -224,20 +224,18 @@
             <table class="sales-table">
                 <thead>
                     <tr>
-                        <th style="width: 14%;">Date</th>
-                        <th style="width: 14%;">Company</th>
-                        <th class="number-cell" style="width: 11%;">Daily Income</th>
-                        <th class="number-cell" style="width: 10%;">Price</th>
-                        <th class="number-cell" style="width: 11%;">In Stock</th>
-                        <th class="number-cell" style="width: 10%;">Sold</th>
-                        <th class="number-cell" style="width: 11%;">Produced</th>
-                        <th class="number-cell" style="width: 8%;">Pop</th>
-                        <th class="number-cell" style="width: 8%;">Eff</th>
-                        <th class="number-cell" style="width: 8%;">Env</th>
-                        <th class="number-cell" style="width: 11%;">Ad Budget</th>
-                        <th class="number-cell" style="width: 11%;">Daily Profit</th>
-                        <th class="number-cell" style="width: 11%;">Profit %</th>
-                        <th class="number-cell" style="width: 11%;">Value Gen</th>
+                        <th style="width: 8%;">Date</th>
+                        <th style="width: 10%;">Company</th>
+                        <th class="number-cell" style="width: 8%;">Daily<br>Income</th>
+                        <th class="number-cell" style="width: 7%;">Price</th>
+                        <th class="number-cell" style="width: 7%;">In<br>Stock</th>
+                        <th class="number-cell" style="width: 7%;">Sold</th>
+                        <th class="number-cell" style="width: 8%;">Produced</th>
+                        <th class="number-cell" style="width: 6%;">Env</th>
+                        <th class="number-cell" style="width: 8%;">Ad<br>Budget</th>
+                        <th class="number-cell" style="width: 7%;">Wages</th>
+                        <th class="number-cell" style="width: 8%;">Daily<br>Profit</th>
+                        <th class="number-cell" style="width: 8%;">Value<br>Gen</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -260,12 +258,10 @@
                                 <td class="number-cell">{{ company_sales.in_stock|floatformat:0 }}</td>
                                 <td class="number-cell">{{ company_sales.sold_amount|floatformat:0 }}</td>
                                 <td class="number-cell">{{ company_sales.created_amount|floatformat:0 }}</td>
-                                <td class="number-cell">{{ company_sales.popularity }}%</td>
-                                <td class="number-cell">{{ company_sales.efficiency }}%</td>
                                 <td class="number-cell">{{ company_sales.environment }}%</td>
                                 <td class="number-cell">{{ company_sales.advertising_budget|currency }}</td>
+                                <td class="number-cell">{{ company_sales.wages|currency }}</td>
                                 <td class="number-cell">{{ company_sales.daily_profit|currency }}</td>
-                                <td class="number-cell">{{ company_sales.profit_margin|floatformat:2 }}%</td>
                                 <td class="number-cell">{{ company_sales.value_generated|currency }}</td>
                             </tr>
                         {% endfor %}
@@ -278,10 +274,10 @@
                             <td class="number-cell">{{ day_data.totals.in_stock|floatformat:0 }}</td>
                             <td class="number-cell">{{ day_data.totals.sold_amount|floatformat:0 }}</td>
                             <td class="number-cell">{{ day_data.totals.created_amount|floatformat:0 }}</td>
-                            <td colspan="3"></td>
                             <td class="number-cell">—</td>
+                            <td class="number-cell">—</td>
+                            <td class="number-cell">{{ day_data.totals.wages|currency }}</td>
                             <td class="number-cell">{{ day_data.totals.daily_profit|currency }}</td>
-                            <td class="number-cell">—</td>
                             <td class="number-cell">{{ day_data.totals.value_generated|currency }}</td>
                         </tr>
                     {% endfor %}

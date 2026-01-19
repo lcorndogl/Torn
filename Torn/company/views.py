@@ -4,7 +4,7 @@ import json
 from django.utils.safestring import mark_safe
 from datetime import datetime, timedelta
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Sum
 
 def company_list(request):
     companies = Company.objects.all()
@@ -221,10 +221,17 @@ def daily_sales_comparison(request):
         daily_income = sale.sold_worth or 0
         sold_amount = sale.sold_amount or 0
         created_amount = sale.created_amount or 0
-        cost = sale.cost or 0
+        advertising_budget = sale.advertising_budget or 0
         
-        # Calculate daily profit (revenue - cost)
-        daily_profit = daily_income - cost if cost else daily_income
+        # Calculate total wages for this company on this date from employee snapshots
+        from django.db.models import Sum
+        employee_wages = DailyEmployeeSnapshot.objects.filter(
+            company=sale.company,
+            snapshot_date=sale.snapshot_date
+        ).aggregate(total_wages=Sum('wage'))['total_wages'] or 0
+        
+        # Calculate daily profit (revenue - wages - advertising)
+        daily_profit = daily_income - employee_wages - advertising_budget
         
         # Calculate profit margin percentage
         profit_margin = ((daily_profit / daily_income) * 100) if daily_income > 0 else 0
@@ -242,8 +249,7 @@ def daily_sales_comparison(request):
             'popularity': sale.popularity or 0,
             'efficiency': sale.efficiency or 0,
             'environment': sale.environment or 0,
-            'advertising_budget': sale.advertising_budget or 0,
-            'daily_profit': daily_profit,
+            'advertising_budget': sale.advertising_budget or 0,            'wages': employee_wages,            'daily_profit': daily_profit,
             'profit_margin': profit_margin,
             'value_generated': value_generated,
         }
@@ -259,6 +265,7 @@ def daily_sales_comparison(request):
                 'sold_amount': 0,
                 'created_amount': 0,
                 'in_stock': 0,
+                'wages': 0,
                 'daily_profit': 0,
                 'value_generated': 0,
             }
@@ -271,6 +278,7 @@ def daily_sales_comparison(request):
             date_entry['totals']['sold_amount'] += company_data['sold_amount']
             date_entry['totals']['created_amount'] += company_data['created_amount']
             date_entry['totals']['in_stock'] += company_data['in_stock']
+            date_entry['totals']['wages'] += company_data['wages']
             date_entry['totals']['daily_profit'] += company_data['daily_profit']
             date_entry['totals']['value_generated'] += company_data['value_generated']
         
