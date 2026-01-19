@@ -79,6 +79,7 @@
         font-size: 0.9rem;
         vertical-align: middle;
         padding: 1rem 0.5rem !important;
+        border-right: 2px solid #f6c344;
     }
     
     .company-row {
@@ -207,6 +208,14 @@
                     <option value="90" {% if days_back == 90 %}selected{% endif %}>Last 90 Days</option>
                 </select>
             </div>
+            <div class="control-group">
+                <label for="viewMode" class="form-label mb-0">View Mode:</label>
+                <select id="viewMode" class="form-select days-select" style="max-width: 200px;">
+                    <option value="all">Individual + Combined</option>
+                    <option value="individual">Individual Only</option>
+                    <option value="combined">Combined Only</option>
+                </select>
+            </div>
             <button class="control-btn" id="refreshBtn">↻ Refresh</button>
         </div>
     </div>
@@ -241,10 +250,10 @@
                 <tbody>
                     {% for day_data in combined_data %}
                         {% for company_id, company_sales in day_data.companies.items %}
-                            <tr class="company-row">
+                            <tr class="company-row" data-row-type="individual">
                                 {% if forloop.first %}
-                                    <!-- Date cell only on first company row -->
-                                    <td class="date-cell" rowspan="{{ day_data.companies|length|add:1 }}">📅<br>{{ day_data.date|date:"d/m/Y" }}</td>
+                                    <!-- Date cell with rowspan for all individual company rows -->
+                                    <td class="date-cell" rowspan="{{ day_data.companies|length }}">📅<br>{{ day_data.date|date:"d/m/Y" }}</td>
                                 {% endif %}
                                 <td class="company-name">
                                     {% if "Polar" in company_sales.company_name %}
@@ -267,7 +276,8 @@
                         {% endfor %}
                         
                         <!-- Combined Totals Row -->
-                        <tr class="totals-row">
+                        <tr class="totals-row" data-row-type="combined">
+                            <td class="date-cell">📅<br>{{ day_data.date|date:"d/m/Y" }}</td>
                             <td colspan="1">💰 Combined</td>
                             <td class="number-cell">{{ day_data.totals.daily_income|currency }}</td>
                             <td class="number-cell">—</td>
@@ -292,6 +302,30 @@
 </div>
 
 <script>
+    function updateViewMode() {
+        const viewMode = document.getElementById('viewMode').value;
+        const rows = document.querySelectorAll('[data-row-type]');
+        
+        rows.forEach(row => {
+            const rowType = row.getAttribute('data-row-type');
+            
+            if (viewMode === 'all') {
+                row.style.display = '';
+            } else if (viewMode === 'individual' && rowType === 'individual') {
+                row.style.display = '';
+            } else if (viewMode === 'combined' && rowType === 'combined') {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Save preference to localStorage
+        localStorage.setItem('salesViewMode', viewMode);
+    }
+    
+    document.getElementById('viewMode').addEventListener('change', updateViewMode);
+    
     document.getElementById('daysSelect').addEventListener('change', function() {
         const days = this.value;
         window.location.href = '?days=' + days;
@@ -299,6 +333,15 @@
     
     document.getElementById('refreshBtn').addEventListener('click', function() {
         location.reload();
+    });
+    
+    // Restore view mode preference on page load
+    window.addEventListener('load', function() {
+        const savedViewMode = localStorage.getItem('salesViewMode');
+        if (savedViewMode) {
+            document.getElementById('viewMode').value = savedViewMode;
+        }
+        updateViewMode();
     });
 </script>
 
