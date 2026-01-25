@@ -191,18 +191,6 @@ class Command(BaseCommand):
                 total_employees = len(data['company_employees'])
                 
                 for employee_id, employee_data in data['company_employees'].items():
-                    # Before 18:00 UTC: skip if snapshot already exists for this date (yesterday)
-                    skip_this_employee = False
-                    if now_utc < time(18, 0) and not force_run:
-                        if DailyEmployeeSnapshot.objects.filter(
-                            company=company,
-                            employee_id=employee_id,
-                            snapshot_date=snapshot_date
-                        ).exists():
-                            skip_this_employee = True
-                    
-                    if skip_this_employee:
-                        continue
                     status_until = employee_data['status']['until']
                     if status_until == 0:
                         status_until = None
@@ -281,6 +269,53 @@ class Command(BaseCommand):
                         'status_state': employee_data['status']['state'],
                         'status_until': status_until,
                     }
+                    
+                    # Get existing snapshot to preserve Switzerland travel tracking
+                    existing_snapshot = DailyEmployeeSnapshot.objects.filter(
+                        company=company,
+                        employee_id=employee_id,
+                        snapshot_date=snapshot_date
+                    ).first()
+                    
+                    # Track Switzerland travel status
+                    status_desc = employee_data['status']['description']
+                    
+                    # Initialize Switzerland fields from existing snapshot or None
+                    last_travelled_to_switzerland = existing_snapshot.last_travelled_to_switzerland if existing_snapshot else None
+                    in_switzerland = existing_snapshot.in_switzerland if existing_snapshot else None
+                    returning_from_switzerland = existing_snapshot.returning_from_switzerland if existing_snapshot else None
+                    
+                    # Update based on current status
+                    if 'Traveling to Switzerland' in status_desc:
+                        # Check if this is a NEW trip (previous trip was completed)
+                        if returning_from_switzerland is not None:
+                            # Previous trip completed, this is a new trip - reset all fields
+                            last_travelled_to_switzerland = normalized_time
+                            in_switzerland = None
+                            returning_from_switzerland = None
+                        elif not last_travelled_to_switzerland:
+                            # First time traveling (no previous trip)
+                            last_travelled_to_switzerland = normalized_time
+                            in_switzerland = None
+                            returning_from_switzerland = None
+                        # else: keep existing timestamp (same ongoing trip)
+                    elif 'In Switzerland' in status_desc:
+                        # Employee has arrived in Switzerland
+                        if not in_switzerland:
+                            in_switzerland = normalized_time
+                        # Keep last_travelled_to_switzerland, clear returning (still on current trip)
+                        returning_from_switzerland = None
+                    elif 'Returning from Switzerland' in status_desc:
+                        # Employee is returning from Switzerland
+                        if not returning_from_switzerland:
+                            returning_from_switzerland = normalized_time
+                        # Keep previous fields (still on same trip)
+                    # If status doesn't mention Switzerland, preserve existing values
+                    
+                    # Add Switzerland fields to defaults
+                    snapshot_defaults['last_travelled_to_switzerland'] = last_travelled_to_switzerland
+                    snapshot_defaults['in_switzerland'] = in_switzerland
+                    snapshot_defaults['returning_from_switzerland'] = returning_from_switzerland
                     
                     DailyEmployeeSnapshot.objects.update_or_create(
                         company=company,
