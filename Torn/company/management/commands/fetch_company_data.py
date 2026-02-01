@@ -225,26 +225,12 @@ class Command(BaseCommand):
                         'created_on': employee_created_on  # Tie record to the snapshot date
                     }
 
-                    try:
-                        Employee.objects.update_or_create(
-                            employee_id=employee_id,
-                            company=company,
-                            defaults=employee_defaults
-                        )
-                    except Employee.MultipleObjectsReturned:
-                        # Multiple rows exist; update the newest without deleting older history
-                        dupes_qs = Employee.objects.filter(employee_id=employee_id, company=company).order_by('-created_on')
-                        keep = dupes_qs.first()
-                        if keep:
-                            for field, value in employee_defaults.items():
-                                setattr(keep, field, value)
-                            keep.save(update_fields=list(employee_defaults.keys()))
-                        else:
-                            Employee.objects.create(
-                                employee_id=employee_id,
-                                company=company,
-                                **employee_defaults
-                            )
+                    # Always create a new Employee record every time the script runs
+                    Employee.objects.create(
+                        employee_id=employee_id,
+                        company=company,
+                        **employee_defaults
+                    )
 
                     # Create or update DailyEmployeeSnapshot record
                     snapshot_defaults = {
