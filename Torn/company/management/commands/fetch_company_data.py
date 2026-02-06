@@ -26,8 +26,10 @@ class Command(BaseCommand):
         
         # Run once per available key so we can ingest data for both companies if keys differ
         pc_key = env('PC_KEY', default=None)
+        swallow_key = env('SWALLOW_KEY', default=None)
         keys_to_use = [
             ("PC_KEY", pc_key),
+            ("SWALLOW_KEY", swallow_key),
             ("API_KEY", API_KEY),
         ]
 
