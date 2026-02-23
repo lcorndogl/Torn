@@ -258,12 +258,11 @@ class Command(BaseCommand):
                         'status_until': status_until,
                     }
                     
-                    # Get existing snapshot to preserve Switzerland travel tracking
+                    # Get latest snapshot to preserve Switzerland travel tracking across days
                     existing_snapshot = DailyEmployeeSnapshot.objects.filter(
                         company=company,
-                        employee_id=employee_id,
-                        snapshot_date=snapshot_date
-                    ).first()
+                        employee_id=employee_id
+                    ).order_by('-snapshot_date').first()
                     
                     # Track Switzerland travel status
                     status_desc = employee_data['status']['description']

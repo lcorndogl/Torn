@@ -1,6 +1,46 @@
 from django.contrib import admin
 from .models import Company, Employee, CurrentEmployee, DailyEmployeeSnapshot, Sale
 
+
+class MultiCompanyFilter(admin.SimpleListFilter):
+    title = 'Company'
+    parameter_name = 'company'
+
+    def lookups(self, request, model_admin):
+        return [(str(company.pk), company.name) for company in Company.objects.order_by('name')]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if not value:
+            return queryset
+        ids = [item for item in value.split(',') if item]
+        return queryset.filter(company__pk__in=ids)
+
+    def choices(self, changelist):
+        value = self.value()
+        selected = value.split(',') if value else []
+
+        yield {
+            'selected': not selected,
+            'query_string': changelist.get_query_string(remove=[self.parameter_name]),
+            'display': 'All',
+        }
+
+        for lookup, title in self.lookup_choices:
+            lookup_str = str(lookup)
+            if lookup_str in selected:
+                new_selected = [item for item in selected if item != lookup_str]
+            else:
+                new_selected = selected + [lookup_str]
+
+            yield {
+                'selected': lookup_str in selected,
+                'query_string': changelist.get_query_string({
+                    self.parameter_name: ','.join(new_selected)
+                }),
+                'display': title,
+            }
+
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
     list_display = ('company_id', 'name')
@@ -8,7 +48,7 @@ class CompanyAdmin(admin.ModelAdmin):
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
     list_display = ('employee_id', 'name', 'company_name', 'position', 'formatted_wage', 'effectiveness_working_stats','manual_labour', 'intelligence', 'endurance', 'status_description','created_on')
-    list_filter = ('position', 'status_description', 'company')
+    list_filter = ('position', 'status_description', MultiCompanyFilter)
     search_fields = ('name', 'position', 'employee_id')
     readonly_fields = ('employee_id', 'created_on')
     ordering = ('-created_on', '-wage', 'name')  # Order by newest fetch first, then highest wage, then name
@@ -89,7 +129,7 @@ class DailyEmployeeSnapshotAdmin(admin.ModelAdmin):
         'formatted_wage', 'manual_labour', 'intelligence', 'endurance',
         'last_travelled_to_switzerland', 'in_switzerland', 'returning_from_switzerland'
     )
-    list_filter = ('snapshot_date', 'company', 'position', 'status_description')
+    list_filter = ('snapshot_date', MultiCompanyFilter, 'position', 'status_description')
     search_fields = ('name', 'employee_id', 'company__name')
     readonly_fields = ('created_on', 'modified_on', 'last_travelled_to_switzerland', 
                        'in_switzerland', 'returning_from_switzerland')
@@ -149,7 +189,7 @@ class DailyEmployeeSnapshotAdmin(admin.ModelAdmin):
 class SaleAdmin(admin.ModelAdmin):
     list_display = ('snapshot_date', 'company_name', 'product_name', 'formatted_price',
                     'formatted_created', 'formatted_sold', 'formatted_in_stock', 'formatted_sold_worth', 'efficiency', 'environment')
-    list_filter = ('snapshot_date', 'company', 'product_name')
+    list_filter = ('snapshot_date', MultiCompanyFilter, 'product_name')
     search_fields = ('product_name', 'company__name')
     readonly_fields = ('created_on', 'modified_on')
     ordering = ['-snapshot_date', 'company']

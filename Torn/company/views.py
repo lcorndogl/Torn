@@ -101,7 +101,8 @@ def employees(request):
         if latest_snapshot:
             switzerland_data[emp_id] = {
                 'has_switzerland_status': latest_snapshot.in_switzerland is not None or 
-                                         latest_snapshot.last_travelled_to_switzerland is not None,
+                                         latest_snapshot.last_travelled_to_switzerland is not None or
+                                         latest_snapshot.returning_from_switzerland is not None,
                 'to_switzerland': latest_snapshot.last_travelled_to_switzerland,
                 'in_switzerland': latest_snapshot.in_switzerland,
                 'from_switzerland': latest_snapshot.returning_from_switzerland
