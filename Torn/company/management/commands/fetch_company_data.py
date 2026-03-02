@@ -274,8 +274,15 @@ class Command(BaseCommand):
                     
                     # Update based on current status
                     if 'Traveling to Switzerland' in status_desc:
+                        # Check if in_switzerland or returning_from_switzerland timestamps are in the past
+                        # This indicates a stale trip that should be cleared
+                        if (in_switzerland and in_switzerland < normalized_time) or \
+                           (returning_from_switzerland and returning_from_switzerland < normalized_time):
+                            # Clear stale trip arrival/return data but keep the initial travel timestamp
+                            in_switzerland = None
+                            returning_from_switzerland = None
                         # Check if this is a NEW trip (previous trip was completed)
-                        if returning_from_switzerland is not None:
+                        elif returning_from_switzerland is not None:
                             # Previous trip completed, this is a new trip - reset all fields
                             last_travelled_to_switzerland = normalized_time
                             in_switzerland = None
@@ -292,7 +299,7 @@ class Command(BaseCommand):
                             in_switzerland = normalized_time
                         # Keep last_travelled_to_switzerland, clear returning (still on current trip)
                         returning_from_switzerland = None
-                    elif 'Returning from Switzerland' in status_desc:
+                    elif 'Returning' in status_desc and 'Switzerland' in status_desc:
                         # Employee is returning from Switzerland
                         if not returning_from_switzerland:
                             returning_from_switzerland = normalized_time
