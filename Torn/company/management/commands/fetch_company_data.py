@@ -267,28 +267,27 @@ class Command(BaseCommand):
                     # Track Switzerland travel status
                     status_desc = employee_data['status']['description']
                     
-                    # Initialize Switzerland fields - only copy from previous snapshot if from today
-                    # This preserves historical records while preventing stale data from showing as current
+                    # Check if person has any Switzerland-related status
+                    has_switzerland_status = ('Switzerland' in status_desc)
+                    
+                    # Initialize Switzerland fields - copy from previous snapshot based on status
                     last_travelled_to_switzerland = None
                     in_switzerland = None
                     returning_from_switzerland = None
                     
-                    if existing_snapshot:
-                        # Only preserve timestamps if they're from today (same as current snapshot_date)
-                        if existing_snapshot.last_travelled_to_switzerland:
-                            existing_date = existing_snapshot.last_travelled_to_switzerland.date()
-                            if existing_date == snapshot_date:
-                                last_travelled_to_switzerland = existing_snapshot.last_travelled_to_switzerland
-                        
-                        if existing_snapshot.in_switzerland:
-                            existing_date = existing_snapshot.in_switzerland.date()
-                            if existing_date == snapshot_date:
-                                in_switzerland = existing_snapshot.in_switzerland
-                        
-                        if existing_snapshot.returning_from_switzerland:
-                            existing_date = existing_snapshot.returning_from_switzerland.date()
-                            if existing_date == snapshot_date:
-                                returning_from_switzerland = existing_snapshot.returning_from_switzerland
+                    if existing_snapshot and has_switzerland_status:
+                        # Person is on a Switzerland trip - preserve all existing timestamps from the ongoing trip
+                        # Copy from previous snapshot regardless of date (to track trips that span multiple days)
+                        last_travelled_to_switzerland = existing_snapshot.last_travelled_to_switzerland
+                        in_switzerland = existing_snapshot.in_switzerland
+                        returning_from_switzerland = existing_snapshot.returning_from_switzerland
+                    elif existing_snapshot and existing_snapshot.snapshot_date == snapshot_date:
+                        # Same day snapshot update but no Switzerland status - preserve today's timestamps
+                        # This handles cases where status changes within the same day after trip completes
+                        last_travelled_to_switzerland = existing_snapshot.last_travelled_to_switzerland
+                        in_switzerland = existing_snapshot.in_switzerland
+                        returning_from_switzerland = existing_snapshot.returning_from_switzerland
+                    # else: New day and no Switzerland status - start fresh with None values
                     
                     # Update based on current status - accumulate timestamps throughout the trip
                     if 'Traveling to Switzerland' in status_desc:
@@ -306,7 +305,7 @@ class Command(BaseCommand):
                         if not returning_from_switzerland:
                             returning_from_switzerland = normalized_time
                         # Keep all other fields (full trip history)
-                    # If status doesn't mention Switzerland, keep existing values from today (will be None if not from today)
+                    # If status doesn't mention Switzerland, existing values are preserved only if same day
                     
                     # Add Switzerland fields to defaults
                     snapshot_defaults['last_travelled_to_switzerland'] = last_travelled_to_switzerland

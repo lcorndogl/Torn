@@ -78,10 +78,10 @@ def employees(request):
     current_members = all_snapshots.filter(snapshot_date=most_recent_date)
     current_member_ids = list(current_members.values_list('employee_id', flat=True))
     
-    # Get current addicted member IDs (addiction ≤ -6)
+    # Get current addicted member IDs (addiction ≤ -2)
     current_addicted_member_ids = []
     for snapshot in current_members:
-        if snapshot.effectiveness_addiction <= -6:
+        if snapshot.effectiveness_addiction <= -2:
             current_addicted_member_ids.append(snapshot.employee_id)
     
     # Get historical data for all current members (not just currently-addicted ones)

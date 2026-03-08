@@ -81,7 +81,7 @@
         </div>
         <div class="col-md-4 d-flex">
             <div class="alert alert-warning flex-fill text-center">
-                <h5 class="mb-3"><i class="fas fa-exclamation-triangle"></i> Yesterdays Addictions (≤ -6)</h5>
+                <h5 class="mb-3"><i class="fas fa-exclamation-triangle"></i> Yesterdays Addictions (≤ -2)</h5>
                 <div id="addictionAlerts">
                     <!-- Addiction alerts will be inserted here -->
                 </div>
@@ -227,7 +227,7 @@
             }
         });
 
-        // Find people with current addiction <= -6 (only current members)
+        // Find people with current addiction <= -2 (only current members)
         const highAddictionPeople = [];
         Object.keys(grouped).forEach(empId => {
             const employeeData = Object.values(grouped[empId]);
@@ -238,7 +238,7 @@
                 // Only include current members for alerts
                 if (latestData.is_current_member) {
                     const originalAddiction = latestData.effectiveness_addiction;
-                    if (originalAddiction <= -6) {
+                    if (originalAddiction <= -2) {
                         // Collect Switzerland status data for this person
                         const switzerlandData = {};
                         if (latestData.switzerland_status) {
@@ -435,7 +435,7 @@
                 </ul>
             `;
         } else {
-            addictionDiv.innerHTML = '<p style="color: #856404; text-align: center;" class="mb-0">No employees with addiction ≤ -6</p>';
+            addictionDiv.innerHTML = '<p style="color: #856404; text-align: center;" class="mb-0">No employees with addiction ≤ -2</p>';
         }
 
         // Populate Inactivity Alert (using info colors)
