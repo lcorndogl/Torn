@@ -290,27 +290,23 @@ class Command(BaseCommand):
                             if existing_date == snapshot_date:
                                 returning_from_switzerland = existing_snapshot.returning_from_switzerland
                     
-                    # Update based on current status
+                    # Update based on current status - accumulate timestamps throughout the trip
                     if 'Traveling to Switzerland' in status_desc:
                         # Starting to travel to Switzerland
                         if not last_travelled_to_switzerland:
-                            # New trip starting today
                             last_travelled_to_switzerland = normalized_time
-                            in_switzerland = None
-                            returning_from_switzerland = None
-                        # else: keep existing timestamp (same ongoing trip from today)
+                        # Keep all other fields as they are
                     elif 'In Switzerland' in status_desc:
                         # Employee has arrived in Switzerland
                         if not in_switzerland:
                             in_switzerland = normalized_time
-                        # Keep last_travelled_to_switzerland if it exists, clear returning
-                        returning_from_switzerland = None
+                        # Keep all other fields (including last_travelled_to_switzerland)
                     elif 'Returning' in status_desc and 'Switzerland' in status_desc:
                         # Employee is returning from Switzerland
                         if not returning_from_switzerland:
                             returning_from_switzerland = normalized_time
-                        # Keep previous fields (still on same trip)
-                    # If status doesn't mention Switzerland, all fields will be None (not copied forward)
+                        # Keep all other fields (full trip history)
+                    # If status doesn't mention Switzerland, keep existing values from today (will be None if not from today)
                     
                     # Add Switzerland fields to defaults
                     snapshot_defaults['last_travelled_to_switzerland'] = last_travelled_to_switzerland
