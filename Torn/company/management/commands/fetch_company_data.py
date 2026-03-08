@@ -267,44 +267,50 @@ class Command(BaseCommand):
                     # Track Switzerland travel status
                     status_desc = employee_data['status']['description']
                     
-                    # Initialize Switzerland fields from existing snapshot or None
-                    last_travelled_to_switzerland = existing_snapshot.last_travelled_to_switzerland if existing_snapshot else None
-                    in_switzerland = existing_snapshot.in_switzerland if existing_snapshot else None
-                    returning_from_switzerland = existing_snapshot.returning_from_switzerland if existing_snapshot else None
+                    # Initialize Switzerland fields - only copy from previous snapshot if from today
+                    # This preserves historical records while preventing stale data from showing as current
+                    last_travelled_to_switzerland = None
+                    in_switzerland = None
+                    returning_from_switzerland = None
+                    
+                    if existing_snapshot:
+                        # Only preserve timestamps if they're from today (same as current snapshot_date)
+                        if existing_snapshot.last_travelled_to_switzerland:
+                            existing_date = existing_snapshot.last_travelled_to_switzerland.date()
+                            if existing_date == snapshot_date:
+                                last_travelled_to_switzerland = existing_snapshot.last_travelled_to_switzerland
+                        
+                        if existing_snapshot.in_switzerland:
+                            existing_date = existing_snapshot.in_switzerland.date()
+                            if existing_date == snapshot_date:
+                                in_switzerland = existing_snapshot.in_switzerland
+                        
+                        if existing_snapshot.returning_from_switzerland:
+                            existing_date = existing_snapshot.returning_from_switzerland.date()
+                            if existing_date == snapshot_date:
+                                returning_from_switzerland = existing_snapshot.returning_from_switzerland
                     
                     # Update based on current status
                     if 'Traveling to Switzerland' in status_desc:
-                        # Check if in_switzerland or returning_from_switzerland timestamps are in the past
-                        # This indicates a stale trip that should be cleared
-                        if (in_switzerland and in_switzerland < normalized_time) or \
-                           (returning_from_switzerland and returning_from_switzerland < normalized_time):
-                            # Clear stale trip arrival/return data but keep the initial travel timestamp
-                            in_switzerland = None
-                            returning_from_switzerland = None
-                        # Check if this is a NEW trip (previous trip was completed)
-                        elif returning_from_switzerland is not None:
-                            # Previous trip completed, this is a new trip - reset all fields
+                        # Starting to travel to Switzerland
+                        if not last_travelled_to_switzerland:
+                            # New trip starting today
                             last_travelled_to_switzerland = normalized_time
                             in_switzerland = None
                             returning_from_switzerland = None
-                        elif not last_travelled_to_switzerland:
-                            # First time traveling (no previous trip)
-                            last_travelled_to_switzerland = normalized_time
-                            in_switzerland = None
-                            returning_from_switzerland = None
-                        # else: keep existing timestamp (same ongoing trip)
+                        # else: keep existing timestamp (same ongoing trip from today)
                     elif 'In Switzerland' in status_desc:
                         # Employee has arrived in Switzerland
                         if not in_switzerland:
                             in_switzerland = normalized_time
-                        # Keep last_travelled_to_switzerland, clear returning (still on current trip)
+                        # Keep last_travelled_to_switzerland if it exists, clear returning
                         returning_from_switzerland = None
                     elif 'Returning' in status_desc and 'Switzerland' in status_desc:
                         # Employee is returning from Switzerland
                         if not returning_from_switzerland:
                             returning_from_switzerland = normalized_time
                         # Keep previous fields (still on same trip)
-                    # If status doesn't mention Switzerland, preserve existing values
+                    # If status doesn't mention Switzerland, all fields will be None (not copied forward)
                     
                     # Add Switzerland fields to defaults
                     snapshot_defaults['last_travelled_to_switzerland'] = last_travelled_to_switzerland
