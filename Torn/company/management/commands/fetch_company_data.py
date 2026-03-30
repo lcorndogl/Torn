@@ -9,7 +9,7 @@ env = environ.Env()
 environ.Env.read_env()
 
 API_KEY = env('API_KEY')
-EXTRA_API_KEY = env('EXTRA_API_KEY', default=None)
+# EXTRA_API_KEY = env('EXTRA_API_KEY', default=None)
 
 
 class Command(BaseCommand):
@@ -32,7 +32,7 @@ class Command(BaseCommand):
             ("PC_KEY", pc_key),
             ("SPAG_KEY", spag_key),
             ("API_KEY", API_KEY),
-            ("EXTRA_API_KEY", EXTRA_API_KEY),
+            # ("EXTRA_API_KEY", EXTRA_API_KEY),
         ]
 
         ran_any = False
@@ -352,4 +352,4 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'Successfully fetched and inserted company data for {company_data["name"]} (key: {key_type})'))
 
         if not ran_any:
-            self.stdout.write(self.style.ERROR('No usable API keys found (PC_KEY, SPAG_KEY, API_KEY, and EXTRA_API_KEY are all missing).'))
+            self.stdout.write(self.style.ERROR('No usable API keys found (PC_KEY, SPAG_KEY, and API_KEY are all missing).'))
