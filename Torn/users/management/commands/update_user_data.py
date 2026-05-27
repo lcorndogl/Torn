@@ -34,6 +34,13 @@ class Command(BaseCommand):
             action='store_true',
             help='Force execution even if another instance is running (bypass lock)',
         )
+        parser.add_argument(
+            '--faction-id',
+            type=int,
+            nargs='+',
+            dest='faction_ids',
+            help='Only fetch data for the provided faction ID(s).',
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -181,7 +188,7 @@ class Command(BaseCommand):
         )
 
         try:
-            self._execute_main_logic()
+            self._execute_main_logic(kwargs)
         except Exception as e:
             self.stdout.write(
                 self.style.ERROR(f'An error occurred during execution: {str(e)}')
@@ -196,13 +203,32 @@ class Command(BaseCommand):
                 )
             )
 
-    def _execute_main_logic(self):
-        faction_ids = FactionList.objects.values_list(
-            'faction_id', flat=True).distinct()
-        call_timestamps = deque()  # Track timestamps of API calls
+    def _execute_main_logic(self, options):
+        requested_faction_ids = options.get('faction_ids')
 
-        factions_to_create = []
-        user_records_to_create = []
+        if requested_faction_ids:
+            faction_ids = list(
+                FactionList.objects.filter(faction_id__in=requested_faction_ids)
+                .values_list('faction_id', flat=True)
+                .distinct()
+            )
+            self.stdout.write(
+                self.style.NOTICE(
+                    f'Processing requested faction IDs: {", ".join(str(fid) for fid in faction_ids)}'
+                )
+            )
+        else:
+            faction_ids = list(
+                FactionList.objects.values_list('faction_id', flat=True).distinct()
+            )
+
+        if not faction_ids:
+            self.stdout.write(self.style.WARNING('No faction IDs found to process.'))
+            return
+
+        call_timestamps = deque()  # Track timestamps of API calls
+        total_factions_added = 0
+        total_user_records_added = 0
 
         for faction_id in faction_ids:
             # Check if we need to delay to respect the rate limit
@@ -246,14 +272,14 @@ class Command(BaseCommand):
                 rank_division = rank_data.get('division', 0)
                 rank = rank_name + (' ' + 'I' * rank_division if rank_division > 0 else '')
 
-                # Collect faction data for bulk creation
-                factions_to_create.append(Faction(
+                faction_to_create = Faction(
                     faction_id=faction_list,
                     respect=faction_data['respect'],
                     rank=rank
-                ))
+                )
 
                 # Process members data
+                user_records_to_create = []
                 if 'members' in faction_data:
                     for member_id, member_data in faction_data['members'].items():
                         # Use member_id as user_id if 'user_id' is missing
@@ -283,19 +309,30 @@ class Command(BaseCommand):
                             position=member_data['position'],
                             current_faction=faction_list
                         ))
+
+                # Persist this faction snapshot immediately so long runs still save progress.
+                Faction.objects.create(
+                    faction_id=faction_to_create.faction_id,
+                    respect=faction_to_create.respect,
+                    rank=faction_to_create.rank,
+                )
+                total_factions_added += 1
+
+                if user_records_to_create:
+                    UserRecord.objects.bulk_create(user_records_to_create, batch_size=1000)
+                    total_user_records_added += len(user_records_to_create)
+
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'Faction {faction_id}: added 1 faction snapshot and '
+                        f'{len(user_records_to_create)} user records.'
+                    )
+                )
             else:
                 self.stdout.write(self.style.ERROR(
                     f'Failed to fetch faction data for faction ID {faction_id}'))
 
-        # Bulk create factions and user records
-        if factions_to_create:
-            Faction.objects.bulk_create(factions_to_create)
-            self.stdout.write(self.style.SUCCESS(
-                f'Successfully added {len(factions_to_create)} factions in bulk.'
-            ))
-
-        if user_records_to_create:
-            UserRecord.objects.bulk_create(user_records_to_create)
-            self.stdout.write(self.style.SUCCESS(
-                f'Successfully added {len(user_records_to_create)} user records in bulk.'
-            ))
+        self.stdout.write(self.style.SUCCESS(
+            f'Completed data update: added {total_factions_added} faction snapshots and '
+            f'{total_user_records_added} user records.'
+        ))
